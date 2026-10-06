@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tryout Scores</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mut:#6b7380;--bd:#e1e5ea;--ac:#1f6feb;--acx:#fff;--ok:#1a7f4b;--warn:#b45309;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1318;--card:#181e26;--tx:#e8ecf1;--mut:#8b95a3;--bd:#2a323d;--ac:#4c8dff;--ok:#3fb97a;--warn:#e5a04a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0 2px}.sub{color:var(--mut);font-size:13px;margin-bottom:12px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1}
+button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:10px 12px;cursor:pointer}
+button.on,button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac)}button:disabled{opacity:.5}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+input,select,textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;width:100%;margin-bottom:8px}
+textarea{resize:vertical;margin:0}
+.crit{margin:12px 0}.crit b{display:block;margin-bottom:6px;font-size:14px}
+.sc{display:flex;gap:6px}.sc button{flex:1;padding:12px 0}
+.mut{color:var(--mut);font-size:13px}.warn{color:var(--warn)}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{color:var(--mut);font-weight:600;font-size:12px}td.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.p{cursor:pointer}.big{font-weight:700}
+</style></head><body><main>
+<h1>Tryout Scores</h1>
+<div class="sub" id="sub"></div>
+<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score players</button><button id="t2">Leaderboard</button></div>
+<div id="v"></div>
+</main>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getFirestore,collection,doc,setDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ====== STEP 1: PASTE YOUR FIREBASE CONFIG HERE (see setup steps) ======
+const firebaseConfig = {
+  apiKey: "AIzaSyAuRve8_OSHyFoggRkNcn-LBRYSDVzZSOk",
+  authDomain: "evha-tryout-evaluations.firebaseapp.com",
+  projectId: "evha-tryout-evaluations",
+  appId: "1:101433588672:web:4f10b23714d40790446625"
+};
+// =======================================================================
+
+var C=['Skating','Hockey IQ','Compete Level','Puck Skills'],SH={'Skating':'Skating','Hockey IQ':'IQ','Compete Level':'Compete','Puck Skills':'Puck'};
+var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,fs=null,code=null,myId=null,myName=null,unsubs=[];
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function mean(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:0}
+function f(n){return n.toFixed(2)}
+function lab(p){return '#'+esc(p.num||'?')}
+function evalOverall(s){return mean(C.map(function(c){return s.v[c]||0}))}
+function stats(pid){
+  var e=scores.filter(function(s){return s.player===pid});
+  var per=C.map(function(c){return mean(e.map(function(s){return s.v[c]||0}))});
+  var os=e.map(evalOverall);
+  return{e:e,n:e.length,per:per,avg:mean(per),spread:os.length>1?Math.max.apply(0,os)-Math.min.apply(0,os):0}
+}
+function mine(pid){return scores.find(function(s){return s.player===pid&&s.by===myId})}
+function sortP(){return players.slice().sort(function(a,b){return (+a.num||0)-(+b.num||0)})}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+
+function render(){
+  if(!myId){renderLogin();return}
+  $('tabs').style.display='flex';
+  $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';
+  var m=players.filter(function(p){return mine(p.id)}).length;
+  $('sub').textContent='Evaluator: '+myName+' · '+players.length+' players · '+scores.length+' evaluations · you scored '+m+' of '+players.length;
+  tab==1?renderScore():renderBoard();
+}
+function renderLogin(){
+  $('tabs').style.display='none';
+  if(false){$('v').innerHTML='<div class="card">Setup needed: paste your Firebase config into the top of this file.</div>';return}
+  $('sub').textContent='';
+  $('v').innerHTML='<div class="card"><div class="crit"><b>Event code</b><input id="lc" placeholder="Shared code from the tryout coordinator" autocapitalize="off"></div><div class="crit"><b>Your name or initials</b><input id="ln" placeholder="e.g. Coach Mike"></div><div class="mut" style="margin-bottom:8px">Use a name no other evaluator uses. Your scores are saved under it.</div><button class="pri" id="lg" style="width:100%">Start</button><div class="mut" id="le" style="margin-top:8px"></div></div>';
+  $('lc').value=ls('tc')||'';$('ln').value=ls('tn')||'';
+  $('lg').onclick=function(){var c=$('lc').value.trim(),n=$('ln').value.trim();if(!c||!n){$('le').textContent='Enter both.';return}start(c,n)};
+}
+function renderScore(){
+  var h='<div class="card"><div class="mut" style="margin-bottom:6px">Add tryout numbers — e.g. 12, or 1-20, or 4,7,15</div><div class="row"><input id="pu" placeholder="Tryout #" style="flex:1;margin:0"><button class="pri" id="pa">Add</button></div></div>';
+  if(!players.length){$('v').innerHTML=h+'<div class="card mut">No tryout numbers yet.</div>';bindAdd();return}
+  if(!sel||!players.some(function(p){return p.id===sel}))sel=sortP()[0].id;
+  h+='<div class="card"><select id="ps" style="margin:0">'+sortP().map(function(p){return '<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lab(p)+(mine(p.id)?' ✓':'')+'</option>'}).join('')+'</select></div>';
+  var m=mine(sel);if(!draft[sel])draft[sel]=Object.assign({},m?m.v:{});
+  var d=draft[sel];if(nd[sel]===undefined)nd[sel]=m&&m.note?m.note:'';
+  h+='<div class="card">'+C.map(function(c){return '<div class="crit"><b>'+c+'</b><div class="sc">'+[1,2,3,4,5].map(function(n){return '<button data-c="'+c+'" data-n="'+n+'" class="'+(d[c]===n?'on':'')+'">'+n+'</button>'}).join('')+'</div></div>'}).join('')+
+   '<div class="crit"><b>Comments (optional)</b><textarea id="nt" rows="3" placeholder="Strengths, concerns, position notes…">'+esc(nd[sel])+'</textarea></div><div class="mut">1 = needs work · 3 = solid · 5 = standout</div><button class="pri" id="sv" style="width:100%;margin-top:10px"'+(C.every(function(c){return d[c]})?'':' disabled')+'>'+(m?'Update my score':'Save my score')+'</button></div>';
+  $('v').innerHTML=h;bindAdd();
+  $('nt').oninput=function(e){nd[sel]=e.target.value};
+  $('ps').onchange=function(e){sel=e.target.value;render()};
+  Array.prototype.forEach.call(document.querySelectorAll('.sc button'),function(b){b.onclick=function(){d[b.dataset.c]=+b.dataset.n;render()}});
+  $('sv').onclick=function(){
+    var b=$('sv');b.disabled=true;var pid=sel;
+    setDoc(doc(fs,'tryouts',code,'scores',myId+'_'+pid),{player:pid,by:myId,who:myName,v:Object.assign({},d),note:(nd[pid]||'').trim(),t:Date.now()}).then(function(){
+      b.textContent='Saved ✓';delete draft[pid];delete nd[pid];
+      setTimeout(function(){var ps=sortP();var i=ps.findIndex(function(p){return p.id===pid});var nx=ps.slice(i+1).concat(ps.slice(0,i)).find(function(p){return !mine(p.id)&&p.id!==pid});if(nx)sel=nx.id;render()},500)
+    }).catch(function(){b.disabled=false;b.textContent='Could not save — retry'});
+  };
+}
+function bindAdd(){
+  var a=$('pa');if(!a)return;
+  a.onclick=function(){
+    var nums=[];$('pu').value.split(',').forEach(function(t){t=t.trim();var m=t.match(/^(\d+)\s*-\s*(\d+)$/);if(m){for(var i=+m[1];i<=+m[2]&&i-m[1]<300;i++)nums.push(String(i))}else if(/^\d+$/.test(t))nums.push(t)});
+    nums.forEach(function(n){if(!players.some(function(p){return String(p.num)===n}))setDoc(doc(fs,'tryouts',code,'players','n'+n),{num:n})});
+    $('pu').value='';
+  };
+}
+function renderBoard(){
+  var rows=players.map(function(p){return{p:p,s:stats(p.id)}}).sort(function(a,b){return b.s.avg-a.s.avg});
+  var h='<div class="row" style="margin-bottom:8px"><span class="mut">Average across all evaluators, equal weights</span><button id="ex">Export CSV</button></div>';
+  if(!rows.length){$('v').innerHTML=h+'<div class="card mut">No players yet.</div>';return}
+  h+='<div class="card tw"><table><tr><th>#</th><th>Tryout #</th><th class="n">Avg</th><th class="n">Evals</th>'+C.map(function(c){return '<th class="n">'+SH[c]+'</th>'}).join('')+'</tr>';
+  rows.forEach(function(r,i){
+    var s=r.s;
+    h+='<tr class="p" data-id="'+r.p.id+'"><td class="mut">'+(i+1)+'</td><td>'+lab(r.p)+(s.spread>=1.5?' <span class="warn" title="Evaluators disagree">⚠</span>':'')+'</td><td class="n big">'+(s.n?f(s.avg):'–')+'</td><td class="n">'+s.n+'</td>'+s.per.map(function(x){return '<td class="n">'+(s.n?f(x):'–')+'</td>'}).join('')+'</tr>';
+    if(open===r.p.id)h+='<tr><td></td><td colspan="'+(3+C.length)+'">'+(s.e.map(function(e){return '<div class="mut">'+esc(e.who||e.by)+': <b>'+f(evalOverall(e))+'</b> ('+C.map(function(c){return e.v[c]}).join('/')+')'+(e.note?'<div style="color:var(--tx);white-space:normal;margin:2px 0 8px">“'+esc(e.note)+'”</div>':'')+'</div>'}).join('')||'<div class="mut">No scores yet</div>')+'</td></tr>';
+  });
+  h+='</table></div><div class="mut">Tap a row to see each evaluator. ⚠ = evaluators differ by 1.5+ points overall.</div>';
+  $('v').innerHTML=h;
+  Array.prototype.forEach.call(document.querySelectorAll('tr.p'),function(t){t.onclick=function(){open=open===t.dataset.id?null:t.dataset.id;render()}});
+  $('ex').onclick=function(){
+    var q=function(x){return '"'+String(x).replace(/"/g,'""')+'"'};
+    var csv=['Rank,Tryout #,Average,Evaluations,'+C.join(',')+',Comments'].concat(rows.map(function(r,i){return [i+1,q(r.p.num||''),f(r.s.avg),r.s.n].concat(r.s.per.map(f)).concat([q(r.s.e.filter(function(e){return e.note}).map(function(e){return (e.who||e.by)+': '+e.note}).join(' | '))]).join(',')})).join('\n');
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='tryout-scores.csv';a.click();
+  };
+}
+function start(c,n){
+  code=c;myName=n;myId=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'eval';
+  ls('tc',c);ls('tn',n);
+  unsubs.forEach(function(u){u()});unsubs=[];players=[];scores=[];
+  var bad=function(){code=null;myId=null;ls('tc','');renderLogin();$('le').textContent='That event code was not accepted. Check it and try again.'};
+  unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
+  unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
+  render();
+}
+$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};
+if(true){fs=getFirestore(initializeApp(firebaseConfig))}
+render();
+</script></body></html>
