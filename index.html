@@ -1,34 +1,20 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tryout Scores</title>
+<title>Pathway Evals</title><meta name="theme-color" content="#142b45"><meta name="apple-mobile-web-app-title" content="Pathway Evals">
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mut:#6b7380;--bd:#e1e5ea;--ac:#1f6feb;--acx:#fff;--ok:#1a7f4b;--warn:#b45309;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1318;--card:#181e26;--tx:#e8ecf1;--mut:#8b95a3;--bd:#2a323d;--ac:#4c8dff;--ok:#3fb97a;--warn:#e5a04a}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:720px;margin:0 auto;padding:14px}
-h1{font-size:20px;margin:4px 0 2px}.sub{color:var(--mut);font-size:13px;margin-bottom:12px}
-.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1}
-button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:10px 12px;cursor:pointer}
-button.on,button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac)}button.danger{color:#b42318;border-color:#f1b4ae;background:var(--card)}button:disabled{opacity:.5}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
-.row{display:flex;gap:8px;align-items:center;justify-content:space-between}
-input,select,textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;width:100%;margin-bottom:8px}
-.row select{flex:1}.setupRow{display:flex;gap:8px;align-items:center;margin-bottom:8px}.setupRow input{margin:0;flex:1}.setupRow button{padding:10px 12px}.pill{display:inline-block;border:1px solid var(--bd);border-radius:999px;padding:3px 8px;font-size:12px;color:var(--mut)}
-textarea{resize:vertical;margin:0}
-.crit{margin:12px 0}.crit b{display:block;margin-bottom:6px;font-size:14px}
-.sc{display:flex;gap:6px}.sc button{flex:1;padding:12px 0}
-.mut{color:var(--mut);font-size:13px}.warn{color:var(--warn)}
-.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}
-th{color:var(--mut);font-weight:600;font-size:12px}td.n{text-align:right;font-variant-numeric:tabular-nums}
-tr.p{cursor:pointer}.big{font-weight:700}
+:root{--bg:#f2f5f8;--card:#fff;--tx:#172a40;--mut:#56697c;--bd:#dbe4ec;--ac:#087c80;--acx:#fff;--ok:#127552;--warn:#a45b00;--navy:#10263f;--shadow:0 6px 24px #10263f08;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#0c1725;--card:#152537;--tx:#eaf2f8;--mut:#a4b5c6;--bd:#2e4357;--ac:#55d6cb;--acx:#09262a;--ok:#65dbb0;--warn:#ffd08a;--navy:#10263f;--shadow:none;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:840px;margin:auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom))}.brand{display:flex;gap:14px;align-items:center;background:var(--navy);color:#fff;padding:24px 20px;border-radius:22px;margin-bottom:18px;box-shadow:var(--shadow)}.mark{width:46px;height:46px;flex-shrink:0;border-radius:14px;background:#55d6cb;color:#10263f;display:grid;place-items:center;font-size:24px;font-weight:800}h1{font-size:25px;letter-spacing:-.8px;margin:0}.tagline{font-size:12px;color:#c3d4e4}.sub{color:var(--mut);font-size:13px;margin:0 2px 16px}.tabs{display:flex;gap:5px;padding:5px;background:var(--card);border:1px solid var(--bd);border-radius:16px;margin-bottom:18px;position:sticky;top:8px;z-index:2;box-shadow:var(--shadow)}.tabs button{flex:1;border:0;font-size:14px;font-weight:650;padding:11px 4px;min-width:0}button{font:inherit;font-weight:600;min-height:44px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;padding:10px 14px;cursor:pointer;touch-action:manipulation}button.on,button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac)}button.danger{color:var(--warn);border-color:var(--bd)}button:disabled{opacity:.45;cursor:default}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--ac);outline-offset:3px}.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}.row{display:flex;gap:10px;align-items:center;justify-content:space-between}.row>*{min-width:0}.row button{flex-shrink:0}input,select,textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:12px;width:100%;min-height:46px;margin-bottom:8px}.row select{flex:1}.setupRow{display:flex;gap:8px;align-items:center;margin-bottom:10px}.setupRow input{margin:0;flex:1;min-width:0}.setupRow button{padding:10px}.pill{display:inline-block;border:1px solid var(--bd);border-radius:999px;padding:5px 10px;font-size:12px;color:var(--mut);white-space:nowrap}textarea{resize:vertical;margin:0}.crit{margin:18px 0}.crit b{display:block;margin-bottom:9px;font-size:14px}.sc{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.sc button{padding:10px 0;min-height:48px;font-variant-numeric:tabular-nums}.sc button.on{box-shadow:0 0 0 2px var(--card),0 0 0 3px var(--ac)}.mut{color:var(--mut);font-size:13px}.warn{color:var(--warn)}.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:12px 9px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}th{color:var(--mut);font-weight:600;font-size:12px}td.n{text-align:right;font-variant-numeric:tabular-nums}tr.p{cursor:pointer}.big{font-weight:750}.intro{font-size:22px;font-weight:750;letter-spacing:-.5px;margin-bottom:6px}.progress{height:6px;background:var(--bd);border-radius:9px;overflow:hidden;margin-bottom:18px}.progress span{display:block;height:100%;background:var(--ac)}.section-title{font-size:17px;font-weight:750;margin-bottom:4px}.player-tools{margin-top:12px;display:flex;gap:8px}.player-tools button{flex:1;font-size:13px}.add-fields{display:grid;grid-template-columns:1fr;gap:4px}.empty{text-align:center;padding:28px 18px}.version{text-align:center;color:var(--mut);font-size:11px;margin-top:22px}.login-card{max-width:500px;margin:24px auto}.setupRow .cn{flex:1}.setupRow .cw{flex:0 0 74px!important}
+@media(min-width:600px){main{padding-top:30px}.brand{padding:28px}.sc{grid-template-columns:repeat(var(--score-count,5),minmax(0,1fr))}.add-fields{grid-template-columns:1fr 1fr;gap:10px}h1{font-size:29px}}
+@media(max-width:400px){main{padding:12px 10px calc(24px + env(safe-area-inset-bottom))}.card{padding:14px}.setupRow{flex-wrap:wrap}.setupRow .cn{flex-basis:100%}.setupRow .cw{flex:1!important}.brand{padding:20px 16px}.row{gap:8px}}
+
+.setupRow{display:grid;grid-template-columns:minmax(0,1fr) 70px 18px}.setupActions{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end}.setupRow .cn,.setupRow .cw{width:100%}.setupActions button{font-size:12px;padding:8px 12px}label{display:block;font-size:14px;margin-bottom:8px}.inlineMessage{margin-top:8px;font-size:13px;color:var(--mut)}@media(max-width:400px){.setupRow .cn{grid-column:1/-1}.setupRow .cw{grid-column:1}}
 </style></head><body><main>
-<h1>Tryout Scores</h1>
+<header class="brand"><div class="mark" aria-hidden="true">↗</div><div><h1>Pathway Evals</h1><div class="tagline">Youth Sports Evaluation &amp; Development</div></div></header>
 <div class="sub" id="sub"></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Setup</button></div>
-<div id="v"></div>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.0</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -44,11 +30,13 @@ const firebaseConfig = {
 // =======================================================================
 
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
+var playerDisplay='number',categorySources={},setupDraft=null;
 var C=DEFAULT_C.slice(),MAX_C=5,SM=10,pm=null,W=equalWeights(DEFAULT_C);
 function cleanMax(n){n=Math.round(Number(n));return n>=5&&n<=10?n:10}
 function scale(){var a=[];for(var i=1;i<=SM;i++)a.push(i);return a}
-function sv(s,c){return (Number(s.v&&s.v[c])||0)*SM/(s.mx||10)}
-function mv(m){var o={};if(m)C.forEach(function(c){if(m.v&&m.v[c])o[c]=Math.max(1,Math.min(SM,Math.round(sv(m,c))))});return o}
+function rawScore(s,c){var keys=[c].concat(categorySources[c]||[]);for(var k of keys)if(s.v&&s.v[k]!==undefined)return Number(s.v[k])||0;return 0}
+function sv(s,c){return rawScore(s,c)*SM/(s.mx||10)}
+function mv(m){var o={};if(m)C.forEach(function(c){if(rawScore(m,c))o[c]=Math.max(1,Math.min(SM,Math.round(sv(m,c))))});return o}
 function shortName(c){return c.length>12?c.slice(0,10)+'…':c}
 function cleanCriteria(a){var out=[];(a||[]).forEach(function(x){x=String(x||'').trim();if(x&&out.indexOf(x)<0&&out.length<MAX_C)out.push(x)});return out.length?out:DEFAULT_C.slice()}
 function equalWeights(a){var out={},base=Math.floor(100/a.length),left=100-base*a.length;a.forEach(function(c,i){out[c]=base+(i<left?1:0)});return out}
@@ -61,7 +49,8 @@ var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function mean(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:0}
 function f(n){return n.toFixed(2)}
-function lab(p){return '#'+esc(p.num||'?')}
+function playerText(p){var n='#'+(p.num||'?');return playerDisplay==='name'?(p.name||n):playerDisplay==='both'&&p.name?n+' · '+p.name:n}
+function lab(p){return esc(playerText(p))}
 function slug(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'x'}
 function nat(a,b){return a.localeCompare(b,undefined,{numeric:true})}
 function weightedAvg(vals){var total=0,wt=0;C.forEach(function(c,i){var w=Number(W[c])||0;total+=(Number(vals[i])||0)*w;wt+=w});return wt?total/wt:mean(vals)}
@@ -113,31 +102,32 @@ function bindSel(board){
 function render(){
   if(!myId){renderLogin();return}
   fixSel();
-  $('tabs').style.display='flex';
+  $('tabs').style.display='flex';$('progress').hidden=tab!==1;
   $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';
-  var m=gp().filter(function(p){return mine(p.id)}).length;
+  var m=gp().filter(function(p){return mine(p.id)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   $('sub').textContent='Evaluator: '+myName+' · '+grp+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · you scored '+m+' of '+gp().length+' on '+day:'');
   tab==1?renderScore():tab==2?renderBoard():renderSetup();
 }
 function renderLogin(){
-  $('tabs').style.display='none';
+  $('tabs').style.display='none';$('progress').hidden=true;
   if(false){$('v').innerHTML='<div class="card">Setup needed: paste your Firebase config into the top of this file.</div>';return}
   $('sub').textContent='';
-  $('v').innerHTML='<div class="card"><div class="crit"><b>Event code</b><input id="lc" placeholder="Shared code from the tryout coordinator" autocapitalize="off"></div><div class="crit"><b>Your name or initials</b><input id="ln" placeholder="e.g. Coach Mike"></div><div class="mut" style="margin-bottom:8px">Use a name no other evaluator uses. Your scores are saved under it.</div><button class="pri" id="lg" style="width:100%">Start</button><div class="mut" id="le" style="margin-top:8px"></div></div>';
+  $('v').innerHTML='<div class="card"><h2 class="intro">Ready to evaluate?</h2><div class="mut">Join your event and help every player move forward.</div><div class="crit"><b>Event code</b><input id="lc" placeholder="Shared code from the tryout coordinator" autocapitalize="off"></div><div class="crit"><b>Your name or initials</b><input id="ln" placeholder="e.g. Coach Mike"></div><div class="mut" style="margin-bottom:8px">Use a name no other evaluator uses. Your scores are saved under it.</div><button class="pri" id="lg" style="width:100%">Start</button><div class="mut" id="le" style="margin-top:8px"></div></div>';
   $('lc').value=ls('tc')||'';$('ln').value=ls('tn')||'';
   $('lg').onclick=function(){var c=$('lc').value.trim(),n=$('ln').value.trim();if(!c||!n){$('le').textContent='Enter both.';return}start(c,n)};
 }
 function renderScore(){
-  var h=selCard(false)+'<div class="card"><div class="mut" style="margin-bottom:6px">Add tryout numbers to '+esc(grp)+' — e.g. 12, or 1-20, or 4,7,15</div><div class="row"><input id="pu" placeholder="Tryout #" style="flex:1;margin:0"><button class="pri" id="pa">Add</button></div></div>';
+  var h=selCard(false)+'<div class="card"><b>Add players</b><div class="mut" style="margin:6px 0 12px">Enter one number, a range (1-20), or a list (4,7,15). Add a name only for a single player.</div><label for="pu">Player / number</label><div class="row"><input id="pu" placeholder="e.g. 12 or 1-20" style="flex:1;margin:0"><button class="pri" id="pa">Add</button></div>'+(playerDisplay!=='number'?'<label for="pn" style="margin-top:12px">Player name (optional)</label><input id="pn" placeholder="Name for a single player" maxlength="80">':'')+'<div class="inlineMessage" id="addMsg" role="status"></div></div>';
   var sp=sortP();
-  if(!sp.length){$('v').innerHTML=h+'<div class="card mut">No tryout numbers in '+esc(grp)+' yet.</div>';bindAdd();bindSel(false);return}
+  if(!sp.length){$('v').innerHTML=h+'<div class="card mut">No players in '+esc(grp)+' yet.</div>';bindAdd();bindSel(false);return}
   if(!sel||!sp.some(function(p){return p.id===sel}))sel=sp[0].id;
-  h+='<div class="card"><select id="ps" style="margin:0">'+sp.map(function(p){return '<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lab(p)+(mine(p.id)?' ✓':'')+'</option>'}).join('')+'</select></div>';
+  h+='<div class="card"><select id="ps" style="margin:0">'+sp.map(function(p){return '<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lab(p)+(mine(p.id)?' ✓':'')+'</option>'}).join('')+'</select><button id="editPlayer" style="margin-top:10px">Edit player name</button></div>';
   var m=mine(sel),dk=sel+'|'+day;if(!draft[dk])draft[dk]=mv(m);
   var d=draft[dk];if(nd[dk]===undefined)nd[dk]=m&&m.note?m.note:'';
-  h+='<div class="card">'+C.map(function(c){return '<div class="crit"><b>'+c+'</b><div class="sc">'+scale().map(function(n){return '<button data-c="'+c+'" data-n="'+n+'" class="'+(d[c]===n?'on':'')+'">'+n+'</button>'}).join('')+'</div></div>'}).join('')+
+  h+='<div class="card">'+C.map(function(c){return '<div class="crit"><b>'+esc(c)+'</b><div class="sc">'+scale().map(function(n){return '<button data-c="'+esc(c)+'" data-n="'+n+'" class="'+(d[c]===n?'on':'')+'">'+n+'</button>'}).join('')+'</div></div>'}).join('')+
    '<div class="crit"><b>Comments (optional)</b><textarea id="nt" rows="3" placeholder="Strengths, concerns, position notes…">'+esc(nd[dk])+'</textarea></div><div class="mut">1 = needs work · '+Math.ceil(SM/2)+' = solid · '+SM+' = standout</div><button class="pri" id="sv" style="width:100%;margin-top:10px"'+(C.every(function(c){return d[c]})?'':' disabled')+'>'+(m?'Update my score':'Save my score')+'</button></div>';
   $('v').innerHTML=h;bindAdd();bindSel(false);
+  $('editPlayer').textContent='Edit player / number';$('editPlayer').onclick=editPlayer;
   $('nt').oninput=function(e){nd[dk]=e.target.value};
   $('ps').onchange=function(e){sel=e.target.value;render()};
   Array.prototype.forEach.call(document.querySelectorAll('.sc button'),function(b){b.onclick=function(){d[b.dataset.c]=+b.dataset.n;render()}});
@@ -151,25 +141,26 @@ function renderScore(){
 }
 
 function renderSetup(){
-  var h='<div class="card"><div class="row"><div><b>Scoring categories & weights</b><div class="mut">Create up to '+MAX_C+' measures. Weights determine the overall leaderboard score and must total 100%.</div></div><span class="pill">'+C.length+'/'+MAX_C+'</span></div><div class="crit"><b>Score scale</b><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(n===(pm||SM)?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Scores already entered are converted proportionally if you change the scale.</div></div><div id="cr" style="margin-top:12px">';
-  C.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c)+'" maxlength="30"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" step="1" value="'+(W[c]===undefined?Math.round(100/C.length):W[c])+'" style="flex:0 0 82px" aria-label="Weight percent"><span style="min-width:18px">%</span><button data-del="'+i+'"'+(C.length<=1?' disabled':'')+'>Remove</button></div>'});
-  h+='</div><div class="row"><button id="ca"'+(C.length>=MAX_C?' disabled':'')+'>+ Add category</button><span class="pill" id="wt">Total: 100%</span></div><button class="pri" id="cs" style="width:100%;margin-top:10px">Save setup</button><div class="mut" id="cm" style="margin-top:8px">Scores use a 1–'+SM+' scale. Category weights affect the overall Avg only.</div></div>'+
-  '<div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear all evaluation scores for this event. Players, groups, days, categories and weights are kept.</div><button class="danger" id="clearScores" style="width:100%">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
+  if(!setupDraft)setupDraft={items:C.map(function(c){return {name:c,original:c,weight:W[c]}}),max:SM,display:playerDisplay};
+  var sd=setupDraft;
+  var h='<div class="card"><b>Evaluation setup</b><div class="mut">Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Existing scores convert proportionally when the scale changes.</div>';
+  sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
+  h+='<div class="row" style="margin-top:14px"><button id="ca"'+(sd.items.length>=MAX_C?' disabled':'')+'>+ Category</button><span class="pill" id="wt"></span></div><button id="equal" style="margin-top:10px">Equal weights</button><button class="pri" id="cs" style="width:100%;margin-top:14px">Save setup</button><div class="inlineMessage" id="cm" role="status"></div></div><div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear evaluation scores for this event. Players and setup are kept.</div><button class="danger" id="clearScores">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
   $('v').innerHTML=h;
-  function totalWeights(){var t=0;Array.prototype.forEach.call(document.querySelectorAll('.cw'),function(i){t+=Number(i.value)||0});$('wt').textContent='Total: '+t+'%';$('wt').className='pill'+(Math.abs(t-100)<0.001?'':' warn');return t}
-  Array.prototype.forEach.call(document.querySelectorAll('.cw'),function(i){i.oninput=totalWeights});totalWeights();
-  $('sm').onchange=function(){pm=+this.value};
-  $('ca').onclick=function(){if(C.length<MAX_C){var old=C.slice(),next=C.concat('Category '+(C.length+1));C=next;W=equalWeights(C);renderSetup()}};
-  Array.prototype.forEach.call(document.querySelectorAll('[data-del]'),function(b){b.onclick=function(){if(C.length>1){C=C.filter(function(_,i){return i!==+b.dataset.del});W=equalWeights(C);renderSetup()}}});
-  $('cs').onclick=function(){
-    var next=[],nextW={},names=document.querySelectorAll('.cn'),weights=document.querySelectorAll('.cw');
-    Array.prototype.forEach.call(names,function(i){next.push(i.value.trim())});
-    if(next.some(function(x){return !x})||new Set(next).size!==next.length){$('cm').textContent='Each category needs a unique name.';$('cm').className='mut warn';return}
-    Array.prototype.forEach.call(weights,function(i,j){nextW[next[j]]=Number(i.value)||0});
-    var total=Object.keys(nextW).reduce(function(a,k){return a+nextW[k]},0);
-    if(Math.abs(total-100)>0.001){$('cm').textContent='Weights must total exactly 100% before saving.';$('cm').className='mut warn';return}
+  function collect(){document.querySelectorAll('.cn').forEach(function(el,i){sd.items[i].name=el.value});document.querySelectorAll('.cw').forEach(function(el,i){sd.items[i].weight=Number(el.value)});sd.max=+$('sm').value;sd.display=$('pd').value;var t=sd.items.reduce(function(a,c){return a+c.weight},0);$('wt').textContent='Total: '+t+'%';$('wt').className='pill'+(t===100?'':' warn')}
+  document.querySelectorAll('.cn,.cw').forEach(function(el){el.oninput=collect});$('sm').onchange=collect;$('pd').onchange=collect;collect();
+  function equal(){var w=equalWeights(sd.items.map(function(_,i){return String(i)}));sd.items.forEach(function(c,i){c.weight=w[String(i)]})}
+  $('equal').onclick=function(){collect();equal();renderSetup()};
+  $('ca').onclick=function(){collect();if(sd.items.length<MAX_C){sd.items.push({name:'',original:null,weight:0});renderSetup()}};
+  document.querySelectorAll('[data-del],[data-up],[data-down]').forEach(function(el){el.onclick=function(){collect();if(el.dataset.del!==undefined)sd.items.splice(+el.dataset.del,1);else {var i=+(el.dataset.up===undefined?el.dataset.down:el.dataset.up),j=i+(el.dataset.up===undefined?1:-1);[sd.items[i],sd.items[j]]=[sd.items[j],sd.items[i]]}renderSetup()}});
+  $('cs').onclick=async function(){
+    collect();var names=sd.items.map(function(c){return c.name.trim()}),weights={},sources={};
+    if(names.some(function(n){return !n})||new Set(names.map(function(n){return n.toLowerCase()})).size!==names.length){$('cm').textContent='Give every category a unique name.';return}
+    if(sd.items.some(function(c){return !Number.isFinite(c.weight)||c.weight<0||c.weight>100})||Math.abs(sd.items.reduce(function(a,c){return a+c.weight},0)-100)>.001){$('cm').textContent='Weights must be between 0 and 100 and total 100%.';return}
+    sd.items.forEach(function(c,i){weights[names[i]]=c.weight;sources[names[i]]=Array.from(new Set((c.original?[c.original]:[]).concat(categorySources[c.original]||[]))).filter(function(k){return k!==names[i]})});
+    if(sd.items.some(function(c,i){return c.original&&c.original!==names[i]&&C.includes(names[i])})){ $('cm').textContent='Use a new category name to avoid mixing existing scores.';return }
     var b=$('cs');b.disabled=true;b.textContent='Saving…';
-    saveCriteria(next,nextW,pm||SM).then(function(){pm=null;b.textContent='Saved ✓';setTimeout(renderSetup,500)}).catch(function(){b.disabled=false;b.textContent='Could not save — retry'});
+    try{await setDoc(eventRef(),{criteria:names,weights:weights,scoreMax:sd.max,playerDisplay:sd.display,showPlayerNames:sd.display!=='number',categorySources:sources},{merge:true});C=names;W=weights;SM=sd.max;playerDisplay=sd.display;categorySources=sources;draft={};setupDraft=null;renderSetup();$('cm').textContent='Setup saved ✓'}catch(e){b.disabled=false;b.textContent='Save setup';$('cm').textContent='Could not save. Try again.'}
   };
   $('clearScores').onclick=function(){
     if(!scores.length){$('clearMsg').textContent='There are no scores to clear.';return}
@@ -181,19 +172,33 @@ function renderSetup(){
     Promise.all(scores.map(function(s){return import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js").then(function(m){return m.deleteDoc(doc(fs,'tryouts',code,'scores',s.id))})})).then(function(){draft={};nd={};$('clearMsg').textContent='All scores cleared ✓';b.textContent='Cleared ✓'}).catch(function(){b.disabled=false;b.textContent='Clear scores';$('clearMsg').textContent='Could not clear every score — retry.'});
   };
 }
+function editPlayer(){
+  var p=players.find(function(p){return p.id===sel});if(!p)return;
+  var num=prompt('Player number',p.num);if(num===null)return;num=num.trim();
+  if(!/^\d+$/.test(num)){alert('Enter a player number using digits only.');return}
+  if(players.some(function(x){return x.id!==p.id&&G(x)===G(p)&&Number(x.num)===Number(num)})){alert('That number is already in this group.');return}
+  var data={num:num};
+  if(playerDisplay!=='number'){var name=prompt('Player name (optional)',p.name||'');if(name===null)return;data.name=name.trim().slice(0,80)}
+  setDoc(doc(fs,'tryouts',code,'players',p.id),data,{merge:true}).catch(function(){alert('Could not update player. Try again.')});
+}
 function bindAdd(){
   var a=$('pa');if(!a)return;
-  a.onclick=function(){
-    var g=grp,nums=[];$('pu').value.split(',').forEach(function(t){t=t.trim();var m=t.match(/^(\d+)\s*-\s*(\d+)$/);if(m){for(var i=+m[1];i<=+m[2]&&i-m[1]<300;i++)nums.push(String(i))}else if(/^\d+$/.test(t))nums.push(t)});
-    nums.forEach(function(n){if(!players.some(function(p){return G(p)===g&&String(p.num)===n}))setDoc(doc(fs,'tryouts',code,'players',slug(g)+'_n'+n),{num:n,grp:g})});
-    $('pu').value='';
+  a.onclick=async function(){
+    var g=grp,nums=[],invalid=false;
+    $('pu').value.split(',').forEach(function(t){t=t.trim();var m=t.match(/^(\d+)\s*-\s*(\d+)$/);if(m){if(+m[2]<+m[1]||+m[2]-+m[1]>=300){invalid=true;return}for(var i=+m[1];i<=+m[2];i++)nums.push(String(i))}else if(/^\d+$/.test(t))nums.push(t);else invalid=true});
+    var name=$('pn')?$('pn').value.trim():'';
+    if(invalid||!nums.length){$('addMsg').textContent='Enter numbers or an ascending range of up to 300 players.';return}
+    nums=Array.from(new Set(nums.map(function(n){return String(Number(n))})));if(name&&nums.length!==1){$('addMsg').textContent='Add one player at a time when entering a name.';return}
+    a.disabled=true;
+    try{await Promise.all(nums.map(function(n){var existing=players.find(function(p){return G(p)===g&&Number(p.num)===Number(n)});return existing?(name?setDoc(doc(fs,'tryouts',code,'players',existing.id),{name:name},{merge:true}):Promise.resolve()):setDoc(doc(fs,'tryouts',code,'players',slug(g)+'_n'+n),{num:n,grp:g,name:name},{merge:true})}));$('pu').value='';if($('pn'))$('pn').value='';$('addMsg').textContent='Players saved ✓'}catch(e){$('addMsg').textContent='Could not save every player. Try again.'}finally{a.disabled=false}
   };
+
 }
 function renderBoard(){
   var rows=gp().map(function(p){return{p:p,s:stats(p.id)}}).sort(function(a,b){return b.s.avg-a.s.avg});
   var h=selCard(true)+'<div class="row" style="margin-bottom:8px"><span class="mut">'+(bday==='all'?'Each day averaged across evaluators, then days averaged equally':'Average across evaluators for '+esc(bday))+'</span><button id="ex">Export CSV</button></div>';
   if(!rows.length){$('v').innerHTML=h+'<div class="card mut">No players in '+esc(grp)+' yet.</div>';bindSel(true);$('ex').onclick=function(){};return}
-  h+='<div class="card tw"><table><tr><th>#</th><th>Tryout #</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Days</th>'+C.map(function(c){return '<th class="n">'+shortName(c)+'</th>'}).join('')+'</tr>';
+  h+='<div class="card tw"><table><tr><th>#</th><th>Player / number</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Days</th>'+C.map(function(c){return '<th class="n">'+esc(shortName(c))+'</th>'}).join('')+'</tr>';
   rows.forEach(function(r,i){
     var s=r.s;
     h+='<tr class="p" data-id="'+r.p.id+'"><td class="mut">'+(i+1)+'</td><td>'+lab(r.p)+(s.spread>=3*SM/10?' <span class="warn" title="Evaluators disagree">⚠</span>':'')+'</td><td class="n big">'+(s.n?f(s.avg):'–')+'</td><td class="n">'+s.n+'</td><td class="n">'+s.days+'</td>'+s.per.map(function(x){return '<td class="n">'+(s.n?f(x):'–')+'</td>'}).join('')+'</tr>';
@@ -204,21 +209,21 @@ function renderBoard(){
   Array.prototype.forEach.call(document.querySelectorAll('tr.p'),function(t){t.onclick=function(){open=open===t.dataset.id?null:t.dataset.id;render()}});
   $('ex').onclick=function(){
     var q=function(x){return '"'+String(x).replace(/"/g,'""')+'"'};
-    var csv=['Rank,Group,Tryout #,Weighted Average,Evaluations,Days,'+C.map(function(c){return c+' ('+(W[c]||0)+'%)'}).join(',')+',Comments'].concat(rows.map(function(r,i){return [i+1,q(grp),q(r.p.num||''),f(r.s.avg),r.s.n,r.s.days].concat(r.s.per.map(f)).concat([q(r.s.e.filter(function(e){return e.note}).map(function(e){return (e.who||e.by)+' ('+D(e)+'): '+e.note}).join(' | '))]).join(',')})).join('\n');
-    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='tryout-'+slug(grp)+(bday==='all'?'-all-days':'-'+slug(bday))+'.csv';a.click();
+    var csv=[['Rank','Group','Player / number','Weighted Average','Evaluations','Days'].concat(C.map(function(c){return c+' ('+(W[c]||0)+'%)'})).concat(['Comments']).map(q).join(',')].concat(rows.map(function(r,i){return [i+1,q(grp),q(playerText(r.p)),f(r.s.avg),r.s.n,r.s.days].concat(r.s.per.map(f)).concat([q(r.s.e.filter(function(e){return e.note}).map(function(e){return (e.who||e.by)+' ('+D(e)+'): '+e.note}).join(' | '))]).join(',')})).join('\n');
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='pathway-evals-'+slug(grp)+(bday==='all'?'-all-days':'-'+slug(bday))+'.csv';a.click();
   };
 }
 function start(c,n){
   code=c;myName=n;myId=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'eval';
   ls('tc',c);ls('tn',n);
-  unsubs.forEach(function(u){u()});unsubs=[];players=[];scores=[];
+  unsubs.forEach(function(u){u()});unsubs=[];players=[];scores=[];draft={};nd={};setupDraft=null;
   var bad=function(){code=null;myId=null;ls('tc','');renderLogin();$('le').textContent='That event code was not accepted. Check it and try again.'};
-  unsubs.push(onSnapshot(eventRef(),function(s){var z=s.exists()?s.data():{};C=cleanCriteria(z.criteria);W=cleanWeights(z.weights,C);var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
+  unsubs.push(onSnapshot(eventRef(),function(s){var z=s.exists()?s.data():{};C=cleanCriteria(z.criteria);playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');categorySources=z.categorySources||{};W=cleanWeights(z.weights,C);var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   render();
 }
-$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t3').onclick=function(){tab=3;render()};
+$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t3').onclick=function(){tab=3;setupDraft=null;render()};
 if(true){fs=getFirestore(initializeApp(firebaseConfig))}
 render();
 </script></body></html>
