@@ -39,7 +39,7 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.4</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.5</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -81,11 +81,12 @@ function nat(a,b){return a.localeCompare(b,undefined,{numeric:true})}
 function weightedAvg(vals){var total=0,wt=0;C.forEach(function(c,i){var w=Number(W[c])||0;total+=(Number(vals[i])||0)*w;wt+=w});return wt?total/wt:mean(vals)}
 function evalOverall(s){return weightedAvg(C.map(function(c){return sv(s,c)}))}
 function G(p){return p.grp||'Main'}
+// Preserve the historical label for legacy evaluations without a session field.
 function D(s){return s.d||'Day 1'}
 function gp(){return players.filter(function(p){return G(p)===grp})}
 function gs(){var ids={};gp().forEach(function(p){ids[p.id]=1});return scores.filter(function(s){return ids[s.player]})}
 function groups(){var g=[];players.forEach(function(p){if(g.indexOf(G(p))<0)g.push(G(p))});xg.forEach(function(x){if(g.indexOf(x)<0)g.push(x)});if(!g.length)g.push('Main');return g.sort(nat)}
-function days(){var d=[];gs().forEach(function(s){if(d.indexOf(D(s))<0)d.push(D(s))});(xd[grp]||[]).forEach(function(x){if(d.indexOf(x)<0)d.push(x)});if(!d.length)d.push('Day 1');return d.sort(nat)}
+function days(){var d=[];gs().forEach(function(s){if(d.indexOf(D(s))<0)d.push(D(s))});(xd[grp]||[]).forEach(function(x){if(d.indexOf(x)<0)d.push(x)});if(!d.length)d.push('Session 1');return d.sort(nat)}
 function fixSel(){
   var gl=groups();if(gl.indexOf(grp)<0)grp=gl[0];
   var dl=days();if(dl.indexOf(day)<0)day=dl[dl.length-1];
@@ -94,7 +95,7 @@ function fixSel(){
 function stats(pid){
   var e=scores.filter(function(s){return s.player===pid&&(bday==='all'||D(s)===bday)});
   var ds=[];e.forEach(function(s){if(ds.indexOf(D(s))<0)ds.push(D(s))});
-  // average evaluators within each day, then average the days (each day counts equally)
+  // Average evaluators within each session, then average sessions equally.
   var per=C.map(function(c){return mean(ds.map(function(d){return mean(e.filter(function(s){return D(s)===d}).map(function(s){return sv(s,c)}))}))});
   var spread=0;
   ds.forEach(function(d){var os=e.filter(function(s){return D(s)===d}).map(evalOverall);if(os.length>1)spread=Math.max(spread,Math.max.apply(0,os)-Math.min.apply(0,os))});
@@ -107,7 +108,7 @@ function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorag
 function selCard(board,manage){
   var gl=groups(),dl=days();
   return '<div class="card"><div class="row"><select id="gs" aria-label="Evaluation group" style="margin:0">'+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select>'+(manage?'<button id="ga">+ Group</button>':'')+'</div>'+
-   '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation day" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All days (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Day</button>':'')+'</div>'+(manage?'<button id="ge" style="margin-top:12px">Edit group name</button><div id="groupMsg" class="inlineMessage" role="status"></div>':'')+'</div>';
+   '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation session" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All sessions (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Session</button>':'')+'</div>'+(manage?'<button id="ge" style="margin-top:12px">Edit group name</button><div id="groupMsg" class="inlineMessage" role="status"></div>':'')+'</div>';
 }
 function bindSel(board){
   $('gs').onchange=function(e){grp=e.target.value;ls('tg',grp);sel=null;open=null;bday='all';render()};
@@ -126,9 +127,9 @@ function bindSel(board){
   };
   $('ds').onchange=function(e){if(board)bday=e.target.value;else day=e.target.value;render()};
   if($('da'))$('da').onclick=async function(){
-    var dl=days(),g=grp,n=(prompt('New day name',"Day "+(dl.length+1))||'').trim();if(!n)return;
+    var dl=days(),g=grp,n=(prompt('New session name',"Session "+(dl.length+1))||'').trim();if(!n)return;
     var next=Object.assign({},xd);next[g]=Array.from(new Set((xd[g]||[]).concat(dl,n)));
-    try{await setDoc(eventRef(),{groupDays:next},{merge:true});xd=next;grp=g;day=n;render()}catch(e){alert('Could not save the day. Try again.')}
+    try{await setDoc(eventRef(),{groupDays:next},{merge:true});xd=next;grp=g;day=n;render()}catch(e){alert('Could not save the session. Try again.')}
   };
 }
 
@@ -193,7 +194,7 @@ function renderScore(){
 function renderSetup(){
   if(!setupDraft)setupDraft={items:C.map(function(c){return {name:c,original:c,weight:W[c]}}),max:SM,display:playerDisplay};
   var sd=setupDraft;
-  var h='<div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, days, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+'<div class="card"><b>Evaluation setup</b><div class="mut">Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Existing scores convert proportionally when the scale changes.</div>';
+  var h='<div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+'<div class="card"><b>Evaluation setup</b><div class="mut">Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Existing scores convert proportionally when the scale changes.</div>';
   sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
   h+='<div class="row" style="margin-top:14px"><button id="ca"'+(sd.items.length>=MAX_C?' disabled':'')+'>+ Category</button><span class="pill" id="wt"></span></div><button id="equal" style="margin-top:10px">Equal weights</button><button class="pri" id="cs" style="width:100%;margin-top:14px">Save setup</button><div class="inlineMessage" id="cm" role="status"></div></div><div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear evaluation scores for this event. Players and setup are kept.</div><button class="danger" id="clearScores">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
   h+='<div class="card player-management"><b>Manage players</b><label for="editPlayerSelect">Player to edit</label><select id="editPlayerSelect"><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button id="editPlayerBtn" disabled>Edit player / number</button><div class="mut" style="margin-top:18px">Remove an accidentally added player from any group. Their evaluations and comments will also be permanently deleted.</div><label for="removePlayerSelect">Player to remove</label><select id="removePlayerSelect"'+(removingPlayer?' disabled':'')+'><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button class="danger" id="removePlayerBtn" disabled>'+(removingPlayer?'Removing…':'Remove player')+'</button><div class="inlineMessage" id="removePlayerMsg" role="status"></div></div>';
@@ -264,21 +265,21 @@ function bindAdd(){
 }
 function renderBoard(){
   var rows=gp().map(function(p){return{p:p,s:stats(p.id)}}).sort(function(a,b){return b.s.avg-a.s.avg});
-  var h=selCard(true)+'<div class="row" style="margin-bottom:8px"><span class="mut">'+(bday==='all'?'Each day averaged across evaluators, then days averaged equally':'Average across evaluators for '+esc(bday))+'</span><button id="ex">Export CSV</button></div>';
+  var h=selCard(true)+'<div class="row" style="margin-bottom:8px"><span class="mut">'+(bday==='all'?'Each session averaged across evaluators, then sessions averaged equally':'Average across evaluators for '+esc(bday))+'</span><button id="ex">Export CSV</button></div>';
   if(!rows.length){$('v').innerHTML=h+'<div class="card mut">No players in '+esc(grp)+' yet.</div>';bindSel(true);$('ex').onclick=function(){};return}
-  h+='<div class="card tw"><table><tr><th>#</th><th>Player / number</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Days</th>'+C.map(function(c){return '<th class="n">'+esc(shortName(c))+'</th>'}).join('')+'</tr>';
+  h+='<div class="card tw"><table><tr><th>#</th><th>Player / number</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Sessions</th>'+C.map(function(c){return '<th class="n">'+esc(shortName(c))+'</th>'}).join('')+'</tr>';
   rows.forEach(function(r,i){
     var s=r.s;
     h+='<tr class="p" data-id="'+r.p.id+'"><td class="mut">'+(i+1)+'</td><td>'+lab(r.p)+(s.spread>=3*SM/10?' <span class="warn" title="Evaluators disagree">⚠</span>':'')+'</td><td class="n big">'+(s.n?f(s.avg):'–')+'</td><td class="n">'+s.n+'</td><td class="n">'+s.days+'</td>'+s.per.map(function(x){return '<td class="n">'+(s.n?f(x):'–')+'</td>'}).join('')+'</tr>';
     if(open===r.p.id)h+='<tr><td></td><td colspan="'+(4+C.length)+'">'+(s.e.slice().sort(function(a,b){return nat(D(a),D(b))}).map(function(e){return '<div class="mut">'+esc(D(e))+' · '+esc(e.who||e.by)+': <b>'+f(evalOverall(e))+'</b> ('+C.map(function(c){return Math.round(sv(e,c)*10)/10}).join('/')+')'+(e.note?'<div style="color:var(--tx);white-space:normal;margin:2px 0 8px">“'+esc(e.note)+'”</div>':'')+'</div>'}).join('')||'<div class="mut">No scores yet</div>')+'</td></tr>';
   });
-  h+='</table></div><div class="mut">Tap a row to see each evaluator. ⚠ = evaluators differ by '+(Math.round(SM*3)/10)+'+ points overall on the same day.</div>';
+  h+='</table></div><div class="mut">Tap a row to see each evaluator. ⚠ = evaluators differ by '+(Math.round(SM*3)/10)+'+ points overall in the same session.</div>';
   $('v').innerHTML=h;bindSel(true);
   Array.prototype.forEach.call(document.querySelectorAll('tr.p'),function(t){t.onclick=function(){open=open===t.dataset.id?null:t.dataset.id;render()}});
   $('ex').onclick=function(){
     var q=function(x){return '"'+String(x).replace(/"/g,'""')+'"'};
-    var csv=[['Rank','Group','Player / number','Weighted Average','Evaluations','Days'].concat(C.map(function(c){return c+' ('+(W[c]||0)+'%)'})).concat(['Comments']).map(q).join(',')].concat(rows.map(function(r,i){return [i+1,q(grp),q(playerText(r.p)),f(r.s.avg),r.s.n,r.s.days].concat(r.s.per.map(f)).concat([q(r.s.e.filter(function(e){return e.note}).map(function(e){return (e.who||e.by)+' ('+D(e)+'): '+e.note}).join(' | '))]).join(',')})).join('\n');
-    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='pathway-evals-'+slug(grp)+(bday==='all'?'-all-days':'-'+slug(bday))+'.csv';a.click();
+    var csv=[['Rank','Group','Player / number','Weighted Average','Evaluations','Sessions'].concat(C.map(function(c){return c+' ('+(W[c]||0)+'%)'})).concat(['Comments']).map(q).join(',')].concat(rows.map(function(r,i){return [i+1,q(grp),q(playerText(r.p)),f(r.s.avg),r.s.n,r.s.days].concat(r.s.per.map(f)).concat([q(r.s.e.filter(function(e){return e.note}).map(function(e){return (e.who||e.by)+' ('+D(e)+'): '+e.note}).join(' | '))]).join(',')})).join('\n');
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='pathway-evals-'+slug(grp)+(bday==='all'?'-all-sessions':'-'+slug(bday))+'.csv';a.click();
   };
 }
 function start(c,n){
