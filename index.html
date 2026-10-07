@@ -39,7 +39,7 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.5</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.6</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -56,6 +56,10 @@ const firebaseConfig = {
 
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
 var playerDisplay='number',categorySources={},setupDraft=null,removingPlayer=false;
+var groupSetups={},legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}},activeSetupSignature='';
+function groupKey(g){return 'g_'+encodeURIComponent(g).replace(/\./g,'%2E')}
+function setupFor(g){return groupSetups[groupKey(g)]||legacySetup}
+function applyGroupSetup(){var cfg=setupFor(grp);C=Array.isArray(cfg.criteria)&&!cfg.criteria.length?[]:cleanCriteria(cfg.criteria);W=cleanWeights(cfg.weights,C);categorySources=cfg.categorySources||{};var signature=JSON.stringify([grp,C,W,categorySources,SM]);if(signature!==activeSetupSignature){draft={};setupDraft=null;activeSetupSignature=signature}}
 var C=DEFAULT_C.slice(),MAX_C=5,SM=10,pm=null,W=equalWeights(DEFAULT_C);
 function cleanMax(n){n=Math.round(Number(n));return n>=5&&n<=10?n:10}
 function scale(){var a=[];for(var i=1;i<=SM;i++)a.push(i);return a}
@@ -67,7 +71,6 @@ function cleanCriteria(a){var out=[];(a||[]).forEach(function(x){x=String(x||'')
 function equalWeights(a){var out={},base=Math.floor(100/a.length),left=100-base*a.length;a.forEach(function(c,i){out[c]=base+(i<left?1:0)});return out}
 function cleanWeights(raw,a){var out={},sum=0;a.forEach(function(c){var n=Number(raw&&raw[c]);if(isFinite(n)&&n>=0){out[c]=n;sum+=n}});return Math.abs(sum-100)<0.001?out:equalWeights(a)}
 function eventRef(){return doc(fs,'tryouts',code)}
-function saveCriteria(next,nextW,nextMax){C=cleanCriteria(next);W=cleanWeights(nextW,C);SM=cleanMax(nextMax);return setDoc(eventRef(),{criteria:C,weights:W,scoreMax:SM},{merge:true})}
 var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,fs=null,code=null,myId=null,myName=null,unsubs=[];
 var grp=ls('tg')||null,day=null,bday='all',xg=[],xd={};
 var $=function(i){return document.getElementById(i)};
@@ -114,8 +117,11 @@ function bindSel(board){
   $('gs').onchange=function(e){grp=e.target.value;ls('tg',grp);sel=null;open=null;bday='all';render()};
   if($('ga'))$('ga').onclick=async function(){
     var n=(prompt('New group name (e.g. 10U)')||'').trim();if(!n)return;
+    if(groups().some(function(g){return g.toLowerCase()===n.toLowerCase()})){alert('That group name already exists.');return}
+    if(n.length>80){alert('Use a group name of 80 characters or fewer.');return}
+    var config={criteria:[],weights:{},categorySources:{}},patch={};patch[groupKey(n)]=config;
     var next=Array.from(new Set(xg.concat(groups(),n)));
-    try{await setDoc(eventRef(),{groups:next},{merge:true});xg=next;grp=n;ls('tg',n);sel=null;open=null;day=null;bday='all';render()}catch(e){alert('Could not save the group. Try again.')}
+    try{await setDoc(eventRef(),{groups:next,groupSetups:patch},{merge:true});groupSetups[groupKey(n)]=config;xg=next;grp=n;ls('tg',n);sel=null;open=null;day=null;bday='all';render()}catch(e){alert('Could not save the group. Try again.')}
   };
   if($('ge'))$('ge').onclick=async function(){
     var old=grp,answer=prompt('Edit group name',old);if(answer===null)return;var name=answer.trim();
@@ -141,15 +147,16 @@ async function renameGroup(old,name){
   var dayPatch=Object.assign({},nextDays);dayPatch[old]=deleteField();
   var batch=writeBatch(fs);
   roster.forEach(function(p){batch.set(doc(fs,'tryouts',code,'players',p.id),{grp:name},{merge:true})});
-  batch.set(eventRef(),{groups:nextGroups,groupDays:dayPatch},{merge:true});
+  var retainedSetup=setupFor(old),setupPatch={};setupPatch[groupKey(name)]=retainedSetup;setupPatch[groupKey(old)]=deleteField();
+  batch.set(eventRef(),{groups:nextGroups,groupDays:dayPatch,groupSetups:setupPatch},{merge:true});
   await batch.commit();
   players=players.map(function(p){return G(p)===old?Object.assign({},p,{grp:name}):p});xg=nextGroups;xd=nextDays;
-  grp=name;ls('tg',name);
+  groupSetups[groupKey(name)]=retainedSetup;delete groupSetups[groupKey(old)];grp=name;setupDraft=null;ls('tg',name);
 }
 
 function render(){
   if(!myId){renderLogin();return}
-  fixSel();
+  fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
   $('tabs').style.display='flex';$('progress').hidden=tab!==1;
   $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';
@@ -170,6 +177,7 @@ function addPlayersCard(){
 }
 function renderScore(){
   var h=selCard(false);
+  if(!C.length){$('v').innerHTML=h+'<div class="card mut">Set up measurement categories for '+esc(grp)+' in Settings before scoring.</div>';bindSel(false);return}
   var sp=sortP();
   if(!sp.length){$('v').innerHTML=h+'<div class="card mut">The organizer has not added players to '+esc(grp)+' yet.</div>';bindSel(false);return}
   if(!sel||!sp.some(function(p){return p.id===sel}))sel=sp[0].id;
@@ -192,10 +200,10 @@ function renderScore(){
 }
 
 function renderSetup(){
-  if(!setupDraft)setupDraft={items:C.map(function(c){return {name:c,original:c,weight:W[c]}}),max:SM,display:playerDisplay};
+  if(!setupDraft||setupDraft.group!==grp)setupDraft={group:grp,items:C.length?C.map(function(c){return {name:c,original:c,weight:W[c]}}):Array.from({length:4},function(){return {name:'',original:null,weight:25}}),max:SM,display:playerDisplay};
   var sd=setupDraft;
-  var h='<div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+'<div class="card"><b>Evaluation setup</b><div class="mut">Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Existing scores convert proportionally when the scale changes.</div>';
-  sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
+  var h='<div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+'<div class="card"><b>Evaluation setup · '+esc(grp)+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
+  sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" placeholder="update measurement category" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
   h+='<div class="row" style="margin-top:14px"><button id="ca"'+(sd.items.length>=MAX_C?' disabled':'')+'>+ Category</button><span class="pill" id="wt"></span></div><button id="equal" style="margin-top:10px">Equal weights</button><button class="pri" id="cs" style="width:100%;margin-top:14px">Save setup</button><div class="inlineMessage" id="cm" role="status"></div></div><div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear evaluation scores for this event. Players and setup are kept.</div><button class="danger" id="clearScores">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
   h+='<div class="card player-management"><b>Manage players</b><label for="editPlayerSelect">Player to edit</label><select id="editPlayerSelect"><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button id="editPlayerBtn" disabled>Edit player / number</button><div class="mut" style="margin-top:18px">Remove an accidentally added player from any group. Their evaluations and comments will also be permanently deleted.</div><label for="removePlayerSelect">Player to remove</label><select id="removePlayerSelect"'+(removingPlayer?' disabled':'')+'><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button class="danger" id="removePlayerBtn" disabled>'+(removingPlayer?'Removing…':'Remove player')+'</button><div class="inlineMessage" id="removePlayerMsg" role="status"></div></div>';
   $('v').innerHTML=h;
@@ -223,7 +231,8 @@ function renderSetup(){
     sd.items.forEach(function(c,i){weights[names[i]]=c.weight;sources[names[i]]=Array.from(new Set((c.original?[c.original]:[]).concat(categorySources[c.original]||[]))).filter(function(k){return k!==names[i]})});
     if(sd.items.some(function(c,i){return c.original&&c.original!==names[i]&&C.includes(names[i])})){ $('cm').textContent='Use a new category name to avoid mixing existing scores.';return }
     var b=$('cs');b.disabled=true;b.textContent='Saving…';
-    try{await setDoc(eventRef(),{criteria:names,weights:weights,scoreMax:sd.max,playerDisplay:sd.display,showPlayerNames:sd.display!=='number',categorySources:sources},{merge:true});C=names;W=weights;SM=sd.max;playerDisplay=sd.display;categorySources=sources;draft={};setupDraft=null;renderSetup();$('cm').textContent='Setup saved ✓'}catch(e){b.disabled=false;b.textContent='Save setup';$('cm').textContent='Could not save. Try again.'}
+    var target=sd.group,config={criteria:names,weights:weights,categorySources:sources},patch={};patch[groupKey(target)]=config;
+    try{await setDoc(eventRef(),{groupSetups:patch,scoreMax:sd.max,playerDisplay:sd.display,showPlayerNames:sd.display!=='number'},{merge:true});groupSetups[groupKey(target)]=config;SM=sd.max;playerDisplay=sd.display;draft={};setupDraft=null;render();if($('cm'))$('cm').textContent='Setup saved for '+target+' ✓'}catch(e){b.disabled=false;b.textContent='Save setup';$('cm').textContent='Could not save. Try again.'}
   };
   $('clearScores').onclick=function(){
     if(!scores.length){$('clearMsg').textContent='There are no scores to clear.';return}
@@ -285,9 +294,9 @@ function renderBoard(){
 function start(c,n){
   code=c;myName=n;myId=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'eval';
   ls('tc',c);ls('tn',n);
-  unsubs.forEach(function(u){u()});unsubs=[];players=[];scores=[];draft={};nd={};setupDraft=null;
+  unsubs.forEach(function(u){u()});unsubs=[];players=[];scores=[];draft={};nd={};setupDraft=null;groupSetups={};activeSetupSignature='';
   var bad=function(){code=null;myId=null;ls('tc','');renderLogin();$('le').textContent='That event code was not accepted. Check it and try again.'};
-  unsubs.push(onSnapshot(eventRef(),function(s){var z=s.exists()?s.data():{};xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};C=cleanCriteria(z.criteria);playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');categorySources=z.categorySources||{};W=cleanWeights(z.weights,C);var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
+  unsubs.push(onSnapshot(eventRef(),function(s){var z=s.exists()?s.data():{};xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};legacySetup={criteria:cleanCriteria(z.criteria),weights:z.weights,categorySources:z.categorySources||{}};groupSetups=z.groupSetups&&typeof z.groupSetups==='object'?z.groupSetups:{};playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   render();
