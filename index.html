@@ -15,7 +15,7 @@ button.on,button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac
 .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
 .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
 input,select,textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;width:100%;margin-bottom:8px}
-.row select{flex:1}
+.row select{flex:1}.setupRow{display:flex;gap:8px;align-items:center;margin-bottom:8px}.setupRow input{margin:0;flex:1}.setupRow button{padding:10px 12px}.pill{display:inline-block;border:1px solid var(--bd);border-radius:999px;padding:3px 8px;font-size:12px;color:var(--mut)}
 textarea{resize:vertical;margin:0}
 .crit{margin:12px 0}.crit b{display:block;margin-bottom:6px;font-size:14px}
 .sc{display:flex;gap:6px}.sc button{flex:1;padding:12px 0}
@@ -27,7 +27,7 @@ tr.p{cursor:pointer}.big{font-weight:700}
 </style></head><body><main>
 <h1>Tryout Scores</h1>
 <div class="sub" id="sub"></div>
-<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score players</button><button id="t2">Leaderboard</button></div>
+<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Setup</button></div>
 <div id="v"></div>
 </main>
 <script type="module">
@@ -43,7 +43,12 @@ const firebaseConfig = {
 };
 // =======================================================================
 
-var C=['Skating','Hockey IQ','Compete Level','Puck Skills'],SH={'Skating':'Skating','Hockey IQ':'IQ','Compete Level':'Compete','Puck Skills':'Puck'};
+var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
+var C=DEFAULT_C.slice(),MAX_C=5;
+function shortName(c){return c.length>12?c.slice(0,10)+'…':c}
+function cleanCriteria(a){var out=[];(a||[]).forEach(function(x){x=String(x||'').trim();if(x&&out.indexOf(x)<0&&out.length<MAX_C)out.push(x)});return out.length?out:DEFAULT_C.slice()}
+function eventRef(){return doc(fs,'tryouts',code)}
+function saveCriteria(next){C=cleanCriteria(next);return setDoc(eventRef(),{criteria:C,scoreMax:10},{merge:true})}
 var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,fs=null,code=null,myId=null,myName=null,unsubs=[];
 var grp=ls('tg')||null,day=null,bday='all',xg=[],xd={};
 var $=function(i){return document.getElementById(i)};
@@ -102,10 +107,10 @@ function render(){
   if(!myId){renderLogin();return}
   fixSel();
   $('tabs').style.display='flex';
-  $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';
+  $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';
   var m=gp().filter(function(p){return mine(p.id)}).length;
   $('sub').textContent='Evaluator: '+myName+' · '+grp+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · you scored '+m+' of '+gp().length+' on '+day:'');
-  tab==1?renderScore():renderBoard();
+  tab==1?renderScore():tab==2?renderBoard():renderSetup();
 }
 function renderLogin(){
   $('tabs').style.display='none';
@@ -123,8 +128,8 @@ function renderScore(){
   h+='<div class="card"><select id="ps" style="margin:0">'+sp.map(function(p){return '<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lab(p)+(mine(p.id)?' ✓':'')+'</option>'}).join('')+'</select></div>';
   var m=mine(sel),dk=sel+'|'+day;if(!draft[dk])draft[dk]=Object.assign({},m?m.v:{});
   var d=draft[dk];if(nd[dk]===undefined)nd[dk]=m&&m.note?m.note:'';
-  h+='<div class="card">'+C.map(function(c){return '<div class="crit"><b>'+c+'</b><div class="sc">'+[1,2,3,4,5].map(function(n){return '<button data-c="'+c+'" data-n="'+n+'" class="'+(d[c]===n?'on':'')+'">'+n+'</button>'}).join('')+'</div></div>'}).join('')+
-   '<div class="crit"><b>Comments (optional)</b><textarea id="nt" rows="3" placeholder="Strengths, concerns, position notes…">'+esc(nd[dk])+'</textarea></div><div class="mut">1 = needs work · 3 = solid · 5 = standout</div><button class="pri" id="sv" style="width:100%;margin-top:10px"'+(C.every(function(c){return d[c]})?'':' disabled')+'>'+(m?'Update my score':'Save my score')+'</button></div>';
+  h+='<div class="card">'+C.map(function(c){return '<div class="crit"><b>'+c+'</b><div class="sc">'+[1,2,3,4,5,6,7,8,9,10].map(function(n){return '<button data-c="'+c+'" data-n="'+n+'" class="'+(d[c]===n?'on':'')+'">'+n+'</button>'}).join('')+'</div></div>'}).join('')+
+   '<div class="crit"><b>Comments (optional)</b><textarea id="nt" rows="3" placeholder="Strengths, concerns, position notes…">'+esc(nd[dk])+'</textarea></div><div class="mut">1 = needs work · 5 = solid · 10 = standout</div><button class="pri" id="sv" style="width:100%;margin-top:10px"'+(C.every(function(c){return d[c]})?'':' disabled')+'>'+(m?'Update my score':'Save my score')+'</button></div>';
   $('v').innerHTML=h;bindAdd();bindSel(false);
   $('nt').oninput=function(e){nd[dk]=e.target.value};
   $('ps').onchange=function(e){sel=e.target.value;render()};
@@ -137,6 +142,22 @@ function renderScore(){
     }).catch(function(){b.disabled=false;b.textContent='Could not save — retry'});
   };
 }
+
+function renderSetup(){
+  var h='<div class="card"><div class="row"><div><b>Scoring categories</b><div class="mut">Create up to '+MAX_C+' measures for this event. Everyone using this event code will use the same categories.</div></div><span class="pill">'+C.length+'/'+MAX_C+'</span></div><div id="cr" style="margin-top:12px">';
+  C.forEach(function(c,i){h+='<div class="setupRow"><input data-i="'+i+'" value="'+esc(c)+'" maxlength="30"><button data-del="'+i+'"'+(C.length<=1?' disabled':'')+'>Remove</button></div>'});
+  h+='</div><button id="ca"'+(C.length>=MAX_C?' disabled':'')+'>+ Add category</button><button class="pri" id="cs" style="width:100%;margin-top:10px">Save setup</button><div class="mut" id="cm" style="margin-top:8px">Scores use a 1–10 scale. Existing saved scores are kept.</div></div>';
+  $('v').innerHTML=h;
+  $('ca').onclick=function(){if(C.length<MAX_C){C=C.concat('Category '+(C.length+1));renderSetup()}};
+  Array.prototype.forEach.call(document.querySelectorAll('[data-del]'),function(b){b.onclick=function(){if(C.length>1){C=C.filter(function(_,i){return i!==+b.dataset.del});renderSetup()}}});
+  $('cs').onclick=function(){
+    var next=[];Array.prototype.forEach.call(document.querySelectorAll('#cr input'),function(i){next.push(i.value)});
+    next=cleanCriteria(next);
+    var b=$('cs');b.disabled=true;b.textContent='Saving…';
+    saveCriteria(next).then(function(){C=next;b.textContent='Saved ✓';setTimeout(renderSetup,500)}).catch(function(){b.disabled=false;b.textContent='Could not save — retry'});
+  };
+}
+
 function bindAdd(){
   var a=$('pa');if(!a)return;
   a.onclick=function(){
@@ -149,13 +170,13 @@ function renderBoard(){
   var rows=gp().map(function(p){return{p:p,s:stats(p.id)}}).sort(function(a,b){return b.s.avg-a.s.avg});
   var h=selCard(true)+'<div class="row" style="margin-bottom:8px"><span class="mut">'+(bday==='all'?'Each day averaged across evaluators, then days averaged equally':'Average across evaluators for '+esc(bday))+'</span><button id="ex">Export CSV</button></div>';
   if(!rows.length){$('v').innerHTML=h+'<div class="card mut">No players in '+esc(grp)+' yet.</div>';bindSel(true);$('ex').onclick=function(){};return}
-  h+='<div class="card tw"><table><tr><th>#</th><th>Tryout #</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Days</th>'+C.map(function(c){return '<th class="n">'+SH[c]+'</th>'}).join('')+'</tr>';
+  h+='<div class="card tw"><table><tr><th>#</th><th>Tryout #</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Days</th>'+C.map(function(c){return '<th class="n">'+shortName(c)+'</th>'}).join('')+'</tr>';
   rows.forEach(function(r,i){
     var s=r.s;
-    h+='<tr class="p" data-id="'+r.p.id+'"><td class="mut">'+(i+1)+'</td><td>'+lab(r.p)+(s.spread>=1.5?' <span class="warn" title="Evaluators disagree">⚠</span>':'')+'</td><td class="n big">'+(s.n?f(s.avg):'–')+'</td><td class="n">'+s.n+'</td><td class="n">'+s.days+'</td>'+s.per.map(function(x){return '<td class="n">'+(s.n?f(x):'–')+'</td>'}).join('')+'</tr>';
+    h+='<tr class="p" data-id="'+r.p.id+'"><td class="mut">'+(i+1)+'</td><td>'+lab(r.p)+(s.spread>=3?' <span class="warn" title="Evaluators disagree">⚠</span>':'')+'</td><td class="n big">'+(s.n?f(s.avg):'–')+'</td><td class="n">'+s.n+'</td><td class="n">'+s.days+'</td>'+s.per.map(function(x){return '<td class="n">'+(s.n?f(x):'–')+'</td>'}).join('')+'</tr>';
     if(open===r.p.id)h+='<tr><td></td><td colspan="'+(4+C.length)+'">'+(s.e.slice().sort(function(a,b){return nat(D(a),D(b))}).map(function(e){return '<div class="mut">'+esc(D(e))+' · '+esc(e.who||e.by)+': <b>'+f(evalOverall(e))+'</b> ('+C.map(function(c){return e.v[c]}).join('/')+')'+(e.note?'<div style="color:var(--tx);white-space:normal;margin:2px 0 8px">“'+esc(e.note)+'”</div>':'')+'</div>'}).join('')||'<div class="mut">No scores yet</div>')+'</td></tr>';
   });
-  h+='</table></div><div class="mut">Tap a row to see each evaluator. ⚠ = evaluators differ by 1.5+ points overall on the same day.</div>';
+  h+='</table></div><div class="mut">Tap a row to see each evaluator. ⚠ = evaluators differ by 3+ points overall on the same day.</div>';
   $('v').innerHTML=h;bindSel(true);
   Array.prototype.forEach.call(document.querySelectorAll('tr.p'),function(t){t.onclick=function(){open=open===t.dataset.id?null:t.dataset.id;render()}});
   $('ex').onclick=function(){
@@ -169,11 +190,12 @@ function start(c,n){
   ls('tc',c);ls('tn',n);
   unsubs.forEach(function(u){u()});unsubs=[];players=[];scores=[];
   var bad=function(){code=null;myId=null;ls('tc','');renderLogin();$('le').textContent='That event code was not accepted. Check it and try again.'};
+  unsubs.push(onSnapshot(eventRef(),function(s){var z=s.exists()?s.data():{};C=cleanCriteria(z.criteria);render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   render();
 }
-$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};
+$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t3').onclick=function(){tab=3;render()};
 if(true){fs=getFirestore(initializeApp(firebaseConfig))}
 render();
 </script></body></html>
