@@ -11,7 +11,7 @@ main{max-width:720px;margin:0 auto;padding:14px}
 h1{font-size:20px;margin:4px 0 2px}.sub{color:var(--mut);font-size:13px;margin-bottom:12px}
 .tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1}
 button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:10px 12px;cursor:pointer}
-button.on,button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac)}button:disabled{opacity:.5}
+button.on,button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac)}button.danger{color:#b42318;border-color:#f1b4ae;background:var(--card)}button:disabled{opacity:.5}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
 .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
 input,select,textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;width:100%;margin-bottom:8px}
@@ -44,11 +44,13 @@ const firebaseConfig = {
 // =======================================================================
 
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
-var C=DEFAULT_C.slice(),MAX_C=5;
+var C=DEFAULT_C.slice(),MAX_C=5,W=equalWeights(DEFAULT_C);
 function shortName(c){return c.length>12?c.slice(0,10)+'…':c}
 function cleanCriteria(a){var out=[];(a||[]).forEach(function(x){x=String(x||'').trim();if(x&&out.indexOf(x)<0&&out.length<MAX_C)out.push(x)});return out.length?out:DEFAULT_C.slice()}
+function equalWeights(a){var out={},base=Math.floor(100/a.length),left=100-base*a.length;a.forEach(function(c,i){out[c]=base+(i<left?1:0)});return out}
+function cleanWeights(raw,a){var out={},sum=0;a.forEach(function(c){var n=Number(raw&&raw[c]);if(isFinite(n)&&n>=0){out[c]=n;sum+=n}});return Math.abs(sum-100)<0.001?out:equalWeights(a)}
 function eventRef(){return doc(fs,'tryouts',code)}
-function saveCriteria(next){C=cleanCriteria(next);return setDoc(eventRef(),{criteria:C,scoreMax:10},{merge:true})}
+function saveCriteria(next,nextW){C=cleanCriteria(next);W=cleanWeights(nextW,C);return setDoc(eventRef(),{criteria:C,weights:W,scoreMax:10},{merge:true})}
 var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,fs=null,code=null,myId=null,myName=null,unsubs=[];
 var grp=ls('tg')||null,day=null,bday='all',xg=[],xd={};
 var $=function(i){return document.getElementById(i)};
@@ -58,7 +60,8 @@ function f(n){return n.toFixed(2)}
 function lab(p){return '#'+esc(p.num||'?')}
 function slug(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'x'}
 function nat(a,b){return a.localeCompare(b,undefined,{numeric:true})}
-function evalOverall(s){return mean(C.map(function(c){return s.v[c]||0}))}
+function weightedAvg(vals){var total=0,wt=0;C.forEach(function(c,i){var w=Number(W[c])||0;total+=(Number(vals[i])||0)*w;wt+=w});return wt?total/wt:mean(vals)}
+function evalOverall(s){return weightedAvg(C.map(function(c){return s.v[c]||0}))}
 function G(p){return p.grp||'Main'}
 function D(s){return s.d||'Day 1'}
 function gp(){return players.filter(function(p){return G(p)===grp})}
@@ -77,7 +80,7 @@ function stats(pid){
   var per=C.map(function(c){return mean(ds.map(function(d){return mean(e.filter(function(s){return D(s)===d}).map(function(s){return s.v[c]||0}))}))});
   var spread=0;
   ds.forEach(function(d){var os=e.filter(function(s){return D(s)===d}).map(evalOverall);if(os.length>1)spread=Math.max(spread,Math.max.apply(0,os)-Math.min.apply(0,os))});
-  return{e:e,n:e.length,days:ds.length,per:per,avg:mean(per),spread:spread}
+  return{e:e,n:e.length,days:ds.length,per:per,avg:weightedAvg(per),spread:spread}
 }
 function mine(pid){return scores.find(function(s){return s.player===pid&&s.by===myId&&D(s)===day})}
 function sortP(){return gp().sort(function(a,b){return (+a.num||0)-(+b.num||0)})}
@@ -144,20 +147,35 @@ function renderScore(){
 }
 
 function renderSetup(){
-  var h='<div class="card"><div class="row"><div><b>Scoring categories</b><div class="mut">Create up to '+MAX_C+' measures for this event. Everyone using this event code will use the same categories.</div></div><span class="pill">'+C.length+'/'+MAX_C+'</span></div><div id="cr" style="margin-top:12px">';
-  C.forEach(function(c,i){h+='<div class="setupRow"><input data-i="'+i+'" value="'+esc(c)+'" maxlength="30"><button data-del="'+i+'"'+(C.length<=1?' disabled':'')+'>Remove</button></div>'});
-  h+='</div><button id="ca"'+(C.length>=MAX_C?' disabled':'')+'>+ Add category</button><button class="pri" id="cs" style="width:100%;margin-top:10px">Save setup</button><div class="mut" id="cm" style="margin-top:8px">Scores use a 1–10 scale. Existing saved scores are kept.</div></div>';
+  var h='<div class="card"><div class="row"><div><b>Scoring categories & weights</b><div class="mut">Create up to '+MAX_C+' measures. Weights determine the overall leaderboard score and must total 100%.</div></div><span class="pill">'+C.length+'/'+MAX_C+'</span></div><div id="cr" style="margin-top:12px">';
+  C.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c)+'" maxlength="30"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" step="1" value="'+(W[c]===undefined?Math.round(100/C.length):W[c])+'" style="flex:0 0 82px" aria-label="Weight percent"><span style="min-width:18px">%</span><button data-del="'+i+'"'+(C.length<=1?' disabled':'')+'>Remove</button></div>'});
+  h+='</div><div class="row"><button id="ca"'+(C.length>=MAX_C?' disabled':'')+'>+ Add category</button><span class="pill" id="wt">Total: 100%</span></div><button class="pri" id="cs" style="width:100%;margin-top:10px">Save setup</button><div class="mut" id="cm" style="margin-top:8px">Scores use a 1–10 scale. Category weights affect the overall Avg only.</div></div>'+
+  '<div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear all evaluation scores for this event. Players, groups, days, categories and weights are kept.</div><button class="danger" id="clearScores" style="width:100%">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
   $('v').innerHTML=h;
-  $('ca').onclick=function(){if(C.length<MAX_C){C=C.concat('Category '+(C.length+1));renderSetup()}};
-  Array.prototype.forEach.call(document.querySelectorAll('[data-del]'),function(b){b.onclick=function(){if(C.length>1){C=C.filter(function(_,i){return i!==+b.dataset.del});renderSetup()}}});
+  function totalWeights(){var t=0;Array.prototype.forEach.call(document.querySelectorAll('.cw'),function(i){t+=Number(i.value)||0});$('wt').textContent='Total: '+t+'%';$('wt').className='pill'+(Math.abs(t-100)<0.001?'':' warn');return t}
+  Array.prototype.forEach.call(document.querySelectorAll('.cw'),function(i){i.oninput=totalWeights});totalWeights();
+  $('ca').onclick=function(){if(C.length<MAX_C){var old=C.slice(),next=C.concat('Category '+(C.length+1));C=next;W=equalWeights(C);renderSetup()}};
+  Array.prototype.forEach.call(document.querySelectorAll('[data-del]'),function(b){b.onclick=function(){if(C.length>1){C=C.filter(function(_,i){return i!==+b.dataset.del});W=equalWeights(C);renderSetup()}}});
   $('cs').onclick=function(){
-    var next=[];Array.prototype.forEach.call(document.querySelectorAll('#cr input'),function(i){next.push(i.value)});
-    next=cleanCriteria(next);
+    var next=[],nextW={},names=document.querySelectorAll('.cn'),weights=document.querySelectorAll('.cw');
+    Array.prototype.forEach.call(names,function(i){next.push(i.value.trim())});
+    if(next.some(function(x){return !x})||new Set(next).size!==next.length){$('cm').textContent='Each category needs a unique name.';$('cm').className='mut warn';return}
+    Array.prototype.forEach.call(weights,function(i,j){nextW[next[j]]=Number(i.value)||0});
+    var total=Object.keys(nextW).reduce(function(a,k){return a+nextW[k]},0);
+    if(Math.abs(total-100)>0.001){$('cm').textContent='Weights must total exactly 100% before saving.';$('cm').className='mut warn';return}
     var b=$('cs');b.disabled=true;b.textContent='Saving…';
-    saveCriteria(next).then(function(){C=next;b.textContent='Saved ✓';setTimeout(renderSetup,500)}).catch(function(){b.disabled=false;b.textContent='Could not save — retry'});
+    saveCriteria(next,nextW).then(function(){b.textContent='Saved ✓';setTimeout(renderSetup,500)}).catch(function(){b.disabled=false;b.textContent='Could not save — retry'});
+  };
+  $('clearScores').onclick=function(){
+    if(!scores.length){$('clearMsg').textContent='There are no scores to clear.';return}
+    var first=confirm('Clear ALL '+scores.length+' evaluation scores for this event? Players and setup will be kept.');
+    if(!first)return;
+    var phrase=(prompt('This cannot be undone. Type CLEAR to permanently delete all scores.')||'').trim();
+    if(phrase!=='CLEAR'){$('clearMsg').textContent='Clear cancelled.';return}
+    var b=$('clearScores');b.disabled=true;b.textContent='Clearing…';
+    Promise.all(scores.map(function(s){return import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js").then(function(m){return m.deleteDoc(doc(fs,'tryouts',code,'scores',s.id))})})).then(function(){draft={};nd={};$('clearMsg').textContent='All scores cleared ✓';b.textContent='Cleared ✓'}).catch(function(){b.disabled=false;b.textContent='Clear scores';$('clearMsg').textContent='Could not clear every score — retry.'});
   };
 }
-
 function bindAdd(){
   var a=$('pa');if(!a)return;
   a.onclick=function(){
@@ -181,7 +199,7 @@ function renderBoard(){
   Array.prototype.forEach.call(document.querySelectorAll('tr.p'),function(t){t.onclick=function(){open=open===t.dataset.id?null:t.dataset.id;render()}});
   $('ex').onclick=function(){
     var q=function(x){return '"'+String(x).replace(/"/g,'""')+'"'};
-    var csv=['Rank,Group,Tryout #,Average,Evaluations,Days,'+C.join(',')+',Comments'].concat(rows.map(function(r,i){return [i+1,q(grp),q(r.p.num||''),f(r.s.avg),r.s.n,r.s.days].concat(r.s.per.map(f)).concat([q(r.s.e.filter(function(e){return e.note}).map(function(e){return (e.who||e.by)+' ('+D(e)+'): '+e.note}).join(' | '))]).join(',')})).join('\n');
+    var csv=['Rank,Group,Tryout #,Weighted Average,Evaluations,Days,'+C.map(function(c){return c+' ('+(W[c]||0)+'%)'}).join(',')+',Comments'].concat(rows.map(function(r,i){return [i+1,q(grp),q(r.p.num||''),f(r.s.avg),r.s.n,r.s.days].concat(r.s.per.map(f)).concat([q(r.s.e.filter(function(e){return e.note}).map(function(e){return (e.who||e.by)+' ('+D(e)+'): '+e.note}).join(' | '))]).join(',')})).join('\n');
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='tryout-'+slug(grp)+(bday==='all'?'-all-days':'-'+slug(bday))+'.csv';a.click();
   };
 }
@@ -190,7 +208,7 @@ function start(c,n){
   ls('tc',c);ls('tn',n);
   unsubs.forEach(function(u){u()});unsubs=[];players=[];scores=[];
   var bad=function(){code=null;myId=null;ls('tc','');renderLogin();$('le').textContent='That event code was not accepted. Check it and try again.'};
-  unsubs.push(onSnapshot(eventRef(),function(s){var z=s.exists()?s.data():{};C=cleanCriteria(z.criteria);render()},bad));
+  unsubs.push(onSnapshot(eventRef(),function(s){var z=s.exists()?s.data():{};C=cleanCriteria(z.criteria);W=cleanWeights(z.weights,C);render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   render();
