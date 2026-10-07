@@ -27,15 +27,23 @@ input,select,textarea{background:var(--bg);border-color:var(--bd);border-radius:
 @media(prefers-color-scheme:dark){:root{--bg:#101923;--card:#182330;--tx:#edf3f8;--mut:#a0afbf;--bd:#2a3745;--ac:#66d9cb;--acx:#102b2b;--navy:#23384e;--shadow:none}.tabs{background:#0d151e}.mark{background:#23384e}.sc button.on{box-shadow:none}.tabs button.on{box-shadow:none}}
 @media(prefers-reduced-motion:reduce){button,input,select,textarea,.progress span{transition:none}}
 
+
+/* Brand colors and custom pathway symbol */
+:root{--bg:#e5f8f4;--bd:#cfe7e3;--ac:#087f83}
+body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radial-gradient(ellipse at 100% 42%,#c5eaf7 0,transparent 60%),#e5f8f4;background-attachment:fixed}
+.brand{padding:18px 20px;margin-bottom:18px;background:#0c2139;color:#fff;border-radius:20px;box-shadow:0 8px 24px #0c213914}.brand .mark{width:48px;height:48px;background:#0c2139;box-shadow:none;border-radius:14px}.brand h1 span{color:#24cbbb}.brand .tagline{color:#bbd7dd;font-size:11px;letter-spacing:1px}.tabs{background:#d1eee8}.card{box-shadow:0 5px 24px #0c213906}.danger{color:#b33b45!important}.player-management{margin-top:14px}.player-management label{margin-top:12px}
+@media(max-width:400px){.brand{padding:16px 14px;gap:9px}.brand h1{font-size:24px}.brand .tagline{font-size:10px;letter-spacing:.7px}}
+@media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
+
 </style></head><body><main>
-<header class="brand"><div class="mark" aria-hidden="true">↗</div><div><h1>Pathway Evals</h1><div class="tagline">Youth Sports Evaluation &amp; Development</div></div></header>
+<header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div>
-<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Setup</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.1</footer>
+<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Settings</button></div>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.2</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getFirestore,collection,doc,setDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,collection,doc,setDoc,onSnapshot,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ====== STEP 1: PASTE YOUR FIREBASE CONFIG HERE (see setup steps) ======
 const firebaseConfig = {
@@ -47,7 +55,7 @@ const firebaseConfig = {
 // =======================================================================
 
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
-var playerDisplay='number',categorySources={},setupDraft=null;
+var playerDisplay='number',categorySources={},setupDraft=null,removingPlayer=false;
 var C=DEFAULT_C.slice(),MAX_C=5,SM=10,pm=null,W=equalWeights(DEFAULT_C);
 function cleanMax(n){n=Math.round(Number(n));return n>=5&&n<=10?n:10}
 function scale(){var a=[];for(var i=1;i<=SM;i++)a.push(i);return a}
@@ -164,7 +172,16 @@ function renderSetup(){
   var h='<div class="card"><b>Evaluation setup</b><div class="mut">Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Existing scores convert proportionally when the scale changes.</div>';
   sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
   h+='<div class="row" style="margin-top:14px"><button id="ca"'+(sd.items.length>=MAX_C?' disabled':'')+'>+ Category</button><span class="pill" id="wt"></span></div><button id="equal" style="margin-top:10px">Equal weights</button><button class="pri" id="cs" style="width:100%;margin-top:14px">Save setup</button><div class="inlineMessage" id="cm" role="status"></div></div><div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear evaluation scores for this event. Players and setup are kept.</div><button class="danger" id="clearScores">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
+  h+='<div class="card player-management"><b>Manage players</b><div class="mut">Remove an accidentally added player from any group. Their evaluations and comments will also be permanently deleted.</div><label for="removePlayerSelect">Player to remove</label><select id="removePlayerSelect"'+(removingPlayer?' disabled':'')+'><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button class="danger" id="removePlayerBtn" disabled>'+(removingPlayer?'Removing…':'Remove player')+'</button><div class="inlineMessage" id="removePlayerMsg" role="status"></div></div>';
   $('v').innerHTML=h;
+  $('removePlayerSelect').onchange=function(){$('removePlayerBtn').disabled=removingPlayer||!this.value};
+  $('removePlayerBtn').onclick=async function(){
+    var id=$('removePlayerSelect').value,p=players.find(function(p){return p.id===id});if(!p||removingPlayer)return;
+    var count=scores.filter(function(s){return s.player===id}).length;
+    if(!confirm('Permanently remove '+playerText(p)+' from '+G(p)+' and delete '+count+' evaluation(s) and their comments? This cannot be undone.'))return;
+    removingPlayer=true;$('removePlayerBtn').disabled=true;$('removePlayerSelect').disabled=true;$('removePlayerBtn').textContent='Removing…';
+    try{await removePlayerData(id);players=players.filter(function(p){return p.id!==id});scores=scores.filter(function(s){return s.player!==id});Object.keys(draft).forEach(function(k){if(k.startsWith(id+'|'))delete draft[k]});Object.keys(nd).forEach(function(k){if(k.startsWith(id+'|'))delete nd[k]});if(sel===id)sel=null;if(open===id)open=null;removingPlayer=false;render();if($('removePlayerMsg'))$('removePlayerMsg').textContent='Player removed ✓'}catch(e){removingPlayer=false;render();if($('removePlayerMsg'))$('removePlayerMsg').textContent='Could not complete removal. Check your connection and try again.'}
+  };
   function collect(){document.querySelectorAll('.cn').forEach(function(el,i){sd.items[i].name=el.value});document.querySelectorAll('.cw').forEach(function(el,i){sd.items[i].weight=Number(el.value)});sd.max=+$('sm').value;sd.display=$('pd').value;var t=sd.items.reduce(function(a,c){return a+c.weight},0);$('wt').textContent='Total: '+t+'%';$('wt').className='pill'+(t===100?'':' warn')}
   document.querySelectorAll('.cn,.cw').forEach(function(el){el.oninput=collect});$('sm').onchange=collect;$('pd').onchange=collect;collect();
   function equal(){var w=equalWeights(sd.items.map(function(_,i){return String(i)}));sd.items.forEach(function(c,i){c.weight=w[String(i)]})}
@@ -189,6 +206,12 @@ function renderSetup(){
     var b=$('clearScores');b.disabled=true;b.textContent='Clearing…';
     Promise.all(scores.map(function(s){return import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js").then(function(m){return m.deleteDoc(doc(fs,'tryouts',code,'scores',s.id))})})).then(function(){draft={};nd={};$('clearMsg').textContent='All scores cleared ✓';b.textContent='Cleared ✓'}).catch(function(){b.disabled=false;b.textContent='Clear scores';$('clearMsg').textContent='Could not clear every score — retry.'});
   };
+}
+// Keep normal removals atomic; larger score histories are cleared in bounded batches.
+async function removePlayerData(id){
+  var refs=scores.filter(function(s){return s.player===id}).map(function(s){return doc(fs,'tryouts',code,'scores',s.id)});
+  while(refs.length>499){var chunk=writeBatch(fs);refs.splice(0,499).forEach(function(ref){chunk.delete(ref)});await chunk.commit()}
+  var batch=writeBatch(fs);refs.forEach(function(ref){batch.delete(ref)});batch.delete(doc(fs,'tryouts',code,'players',id));await batch.commit();
 }
 function editPlayer(){
   var p=players.find(function(p){return p.id===sel});if(!p)return;
