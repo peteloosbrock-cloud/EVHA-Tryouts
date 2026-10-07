@@ -39,11 +39,11 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.3</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.4</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getFirestore,collection,doc,setDoc,onSnapshot,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,collection,doc,setDoc,onSnapshot,writeBatch,deleteField} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ====== STEP 1: PASTE YOUR FIREBASE CONFIG HERE (see setup steps) ======
 const firebaseConfig = {
@@ -107,7 +107,7 @@ function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorag
 function selCard(board,manage){
   var gl=groups(),dl=days();
   return '<div class="card"><div class="row"><select id="gs" aria-label="Evaluation group" style="margin:0">'+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select>'+(manage?'<button id="ga">+ Group</button>':'')+'</div>'+
-   '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation day" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All days (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Day</button>':'')+'</div></div>';
+   '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation day" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All days (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Day</button>':'')+'</div>'+(manage?'<button id="ge" style="margin-top:12px">Edit group name</button><div id="groupMsg" class="inlineMessage" role="status"></div>':'')+'</div>';
 }
 function bindSel(board){
   $('gs').onchange=function(e){grp=e.target.value;ls('tg',grp);sel=null;open=null;bday='all';render()};
@@ -116,12 +116,34 @@ function bindSel(board){
     var next=Array.from(new Set(xg.concat(groups(),n)));
     try{await setDoc(eventRef(),{groups:next},{merge:true});xg=next;grp=n;ls('tg',n);sel=null;open=null;day=null;bday='all';render()}catch(e){alert('Could not save the group. Try again.')}
   };
+  if($('ge'))$('ge').onclick=async function(){
+    var old=grp,answer=prompt('Edit group name',old);if(answer===null)return;var name=answer.trim();
+    if(!name){$('groupMsg').textContent='Enter a group name.';return}if(name===old)return;
+    if(name.length>80){$('groupMsg').textContent='Use a group name of 80 characters or fewer.';return}
+    if(groups().some(function(g){return g!==old&&g.toLowerCase()===name.toLowerCase()})){$('groupMsg').textContent='That group name already exists. Choose another name.';return}
+    var btn=$('ge');btn.disabled=true;btn.textContent='Saving…';
+    try{await renameGroup(old,name);render();if($('groupMsg'))$('groupMsg').textContent='Group renamed ✓'}catch(e){render();if($('groupMsg'))$('groupMsg').textContent=e.message==='group-too-large'?'This group is too large to rename in one update (maximum 499 players).':'Could not rename the group. Try again.'}
+  };
   $('ds').onchange=function(e){if(board)bday=e.target.value;else day=e.target.value;render()};
   if($('da'))$('da').onclick=async function(){
     var dl=days(),g=grp,n=(prompt('New day name',"Day "+(dl.length+1))||'').trim();if(!n)return;
     var next=Object.assign({},xd);next[g]=Array.from(new Set((xd[g]||[]).concat(dl,n)));
     try{await setDoc(eventRef(),{groupDays:next},{merge:true});xd=next;grp=g;day=n;render()}catch(e){alert('Could not save the day. Try again.')}
   };
+}
+
+async function renameGroup(old,name){
+  var roster=players.filter(function(p){return G(p)===old});
+  if(roster.length>499)throw new Error('group-too-large');
+  var nextGroups=Array.from(new Set(groups().map(function(g){return g===old?name:g}))),nextDays=Object.assign({},xd);
+  if(Object.prototype.hasOwnProperty.call(nextDays,old)){nextDays[name]=nextDays[old];delete nextDays[old]}
+  var dayPatch=Object.assign({},nextDays);dayPatch[old]=deleteField();
+  var batch=writeBatch(fs);
+  roster.forEach(function(p){batch.set(doc(fs,'tryouts',code,'players',p.id),{grp:name},{merge:true})});
+  batch.set(eventRef(),{groups:nextGroups,groupDays:dayPatch},{merge:true});
+  await batch.commit();
+  players=players.map(function(p){return G(p)===old?Object.assign({},p,{grp:name}):p});xg=nextGroups;xd=nextDays;
+  grp=name;ls('tg',name);
 }
 
 function render(){
@@ -236,7 +258,7 @@ function bindAdd(){
     if(invalid||!nums.length){$('addMsg').textContent='Enter numbers or an ascending range of up to 300 players.';return}
     nums=Array.from(new Set(nums.map(function(n){return String(Number(n))})));if(name&&nums.length!==1){$('addMsg').textContent='Add one player at a time when entering a name.';return}
     a.disabled=true;
-    try{await Promise.all(nums.map(function(n){var existing=players.find(function(p){return G(p)===g&&Number(p.num)===Number(n)});return existing?(name?setDoc(doc(fs,'tryouts',code,'players',existing.id),{name:name},{merge:true}):Promise.resolve()):setDoc(doc(fs,'tryouts',code,'players',slug(g)+'_n'+n),{num:n,grp:g,name:name},{merge:true})}));$('pu').value='';if($('pn'))$('pn').value='';$('addMsg').textContent='Players saved ✓'}catch(e){$('addMsg').textContent='Could not save every player. Try again.'}finally{a.disabled=false}
+    try{await Promise.all(nums.map(function(n){var existing=players.find(function(p){return G(p)===g&&Number(p.num)===Number(n)});return existing?(name?setDoc(doc(fs,'tryouts',code,'players',existing.id),{name:name},{merge:true}):Promise.resolve()):setDoc(doc(collection(fs,'tryouts',code,'players')),{num:n,grp:g,name:name},{merge:true})}));$('pu').value='';if($('pn'))$('pn').value='';$('addMsg').textContent='Players saved ✓'}catch(e){$('addMsg').textContent='Could not save every player. Try again.'}finally{a.disabled=false}
   };
 
 }
