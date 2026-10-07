@@ -39,7 +39,7 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.6</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.7</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -111,7 +111,7 @@ function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorag
 function selCard(board,manage){
   var gl=groups(),dl=days();
   return '<div class="card"><div class="row"><select id="gs" aria-label="Evaluation group" style="margin:0">'+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select>'+(manage?'<button id="ga">+ Group</button>':'')+'</div>'+
-   '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation session" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All sessions (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Session</button>':'')+'</div>'+(manage?'<button id="ge" style="margin-top:12px">Edit group name</button><div id="groupMsg" class="inlineMessage" role="status"></div>':'')+'</div>';
+   '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation session" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All sessions (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Session</button>':'')+'</div>'+(manage?'<button id="ge" style="margin-top:12px">Edit group name</button><button id="de" style="margin-top:12px">Edit session name</button><div id="groupMsg" class="inlineMessage" role="status"></div><div id="sessionMsg" class="inlineMessage" role="status"></div>':'')+'</div>';
 }
 function bindSel(board){
   $('gs').onchange=function(e){grp=e.target.value;ls('tg',grp);sel=null;open=null;bday='all';render()};
@@ -131,12 +131,37 @@ function bindSel(board){
     var btn=$('ge');btn.disabled=true;btn.textContent='Saving…';
     try{await renameGroup(old,name);render();if($('groupMsg'))$('groupMsg').textContent='Group renamed ✓'}catch(e){render();if($('groupMsg'))$('groupMsg').textContent=e.message==='group-too-large'?'This group is too large to rename in one update (maximum 499 players).':'Could not rename the group. Try again.'}
   };
+  if($('de'))$('de').onclick=async function(){
+    var g=grp,old=day,answer=prompt('Edit session name',old);if(answer===null)return;var name=answer.trim();
+    if(!name){$('sessionMsg').textContent='Enter a session name.';return}if(name===old)return;
+    if(name.length>80){$('sessionMsg').textContent='Use a session name of 80 characters or fewer.';return}
+    if(name.toLowerCase()==='all'){$('sessionMsg').textContent='Choose a name other than All.';return}
+    if(days().some(function(d){return d!==old&&d.toLowerCase()===name.toLowerCase()})){$('sessionMsg').textContent='That session name already exists in this group.';return}
+    var btn=$('de');btn.disabled=true;btn.textContent='Saving…';
+    try{await renameSession(g,old,name);render();if($('sessionMsg'))$('sessionMsg').textContent='Session renamed ✓'}catch(e){render();if($('sessionMsg'))$('sessionMsg').textContent=e.message==='session-too-large'?'This session has more than 499 evaluations and cannot be renamed in one update.':'Could not rename the session. Try again.'}
+  };
   $('ds').onchange=function(e){if(board)bday=e.target.value;else day=e.target.value;render()};
   if($('da'))$('da').onclick=async function(){
     var dl=days(),g=grp,n=(prompt('New session name',"Session "+(dl.length+1))||'').trim();if(!n)return;
     var next=Object.assign({},xd);next[g]=Array.from(new Set((xd[g]||[]).concat(dl,n)));
     try{await setDoc(eventRef(),{groupDays:next},{merge:true});xd=next;grp=g;day=n;render()}catch(e){alert('Could not save the session. Try again.')}
   };
+}
+
+async function renameSession(g,old,name){
+  var ids=new Set(players.filter(function(p){return G(p)===g}).map(function(p){return p.id}));
+  var affected=scores.filter(function(s){return ids.has(s.player)&&D(s)===old});
+  if(affected.length>499)throw new Error('session-too-large');
+  var existing=Array.from(new Set((xd[g]||[]).concat(scores.filter(function(s){return ids.has(s.player)}).map(D),old)));
+  var next=existing.map(function(d){return d===old?name:d}),patch={};patch[g]=next;
+  var batch=writeBatch(fs);
+  affected.forEach(function(s){batch.set(doc(fs,'tryouts',code,'scores',s.id),{d:name},{merge:true})});
+  batch.set(eventRef(),{groupDays:patch},{merge:true});
+  await batch.commit();
+  xd=Object.assign({},xd,patch);
+  scores=scores.map(function(s){return ids.has(s.player)&&D(s)===old?Object.assign({},s,{d:name}):s});
+  [draft,nd].forEach(function(cache){ids.forEach(function(id){var key=id+'|'+old;if(Object.prototype.hasOwnProperty.call(cache,key)){cache[id+'|'+name]=cache[key];delete cache[key]}})});
+  if(grp===g){if(day===old)day=name;if(bday===old)bday=name}
 }
 
 async function renameGroup(old,name){
@@ -192,7 +217,7 @@ function renderScore(){
   Array.prototype.forEach.call(document.querySelectorAll('.sc button'),function(b){b.onclick=function(){d[b.dataset.c]=+b.dataset.n;render()}});
   $('sv').onclick=function(){
     var b=$('sv');b.disabled=true;var pid=sel,dy=day,key=dk;
-    setDoc(doc(fs,'tryouts',code,'scores',m?m.id:myId+'_'+slug(dy)+'_'+pid),{player:pid,by:myId,who:myName,d:dy,v:Object.assign({},d),mx:SM,note:(nd[key]||'').trim(),t:Date.now()}).then(function(){
+    setDoc((m?doc(fs,'tryouts',code,'scores',m.id):doc(collection(fs,'tryouts',code,'scores'))),{player:pid,by:myId,who:myName,d:dy,v:Object.assign({},d),mx:SM,note:(nd[key]||'').trim(),t:Date.now()}).then(function(){
       b.textContent='Saved ✓';delete draft[key];delete nd[key];
       setTimeout(function(){var ps=sortP();var i=ps.findIndex(function(p){return p.id===pid});var nx=ps.slice(i+1).concat(ps.slice(0,i)).find(function(p){return !mine(p.id)&&p.id!==pid});if(nx)sel=nx.id;render()},500)
     }).catch(function(){b.disabled=false;b.textContent='Could not save — retry'});
