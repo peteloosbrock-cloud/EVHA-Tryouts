@@ -35,11 +35,11 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 @media(max-width:400px){.brand{padding:16px 14px;gap:9px}.brand h1{font-size:24px}.brand .tagline{font-size:10px;letter-spacing:.7px}}
 @media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
 
-</style></head><body><main>
+dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;border:1px solid var(--bd);border-radius:18px;padding:22px;color:var(--tx);background:var(--card)}dialog::backdrop{background:#0c2139aa}dialog h2{font-size:20px;margin:0 0 12px}input[type=checkbox]{width:22px;min-height:22px;margin:0;accent-color:var(--ac)}[hidden]{display:none!important}</style></head><body><main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.1</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.2</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -86,21 +86,22 @@ function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;
 function mean(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:0}
 function f(n){return n.toFixed(2)}
 function playerText(p){var n='#'+(p.num||'?');return playerDisplay==='name'?(p.name||n):playerDisplay==='both'&&p.name?n+' · '+p.name:n}
-function lab(p){return esc(playerText(p))}
+function lab(p){return esc(playerText(p)+(p.position?' · '+p.position:''))}
 function slug(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'x'}
 function nat(a,b){return a.localeCompare(b,undefined,{numeric:true})}
 function weightedAvg(vals){var total=0,wt=0;C.forEach(function(c,i){var w=Number(W[c])||0;total+=(Number(vals[i])||0)*w;wt+=w});return wt?total/wt:mean(vals)}
 function evalOverall(s){return weightedAvg(C.map(function(c){return sv(s,c)}))}
-function G(p){return p.grp||'Main'}
+function G(p){return Object.prototype.hasOwnProperty.call(p,'grp')?p.grp:'Main'}
+function groupLabel(p){return G(p)||'Unassigned'}
 // Preserve the historical label for legacy evaluations without a session field.
 function D(s){return s.d||'Day 1'}
 function gp(){return players.filter(function(p){return G(p)===grp})}
 function gs(){var ids={};gp().forEach(function(p){ids[p.id]=1});return scores.filter(function(s){return ids[s.player]})}
-function groups(){var g=[];players.forEach(function(p){if(g.indexOf(G(p))<0)g.push(G(p))});xg.forEach(function(x){if(g.indexOf(x)<0)g.push(x)});if(!g.length)g.push('Main');return g.sort(nat)}
-function days(){var d=[];gs().forEach(function(s){if(d.indexOf(D(s))<0)d.push(D(s))});(xd[grp]||[]).forEach(function(x){if(d.indexOf(x)<0)d.push(x)});if(!d.length)d.push('Session 1');return d.sort(nat)}
+function groups(){var g=[];players.forEach(function(p){if(G(p)&&g.indexOf(G(p))<0)g.push(G(p))});xg.forEach(function(x){if(g.indexOf(x)<0)g.push(x)});return g.sort(nat)}
+function days(){if(!grp)return [];var d=[];gs().forEach(function(s){if(d.indexOf(D(s))<0)d.push(D(s))});(xd[grp]||[]).forEach(function(x){if(d.indexOf(x)<0)d.push(x)});if(!d.length&&!Object.prototype.hasOwnProperty.call(xd,grp))d.push('Session 1');return d.sort(nat)}
 function fixSel(){
-  var gl=groups();if(gl.indexOf(grp)<0)grp=gl[0];
-  var dl=days();if(dl.indexOf(day)<0)day=dl[dl.length-1];
+  var gl=groups();if(gl.indexOf(grp)<0)grp=gl[0]||null;
+  var dl=days();if(dl.indexOf(day)<0)day=dl[dl.length-1]||null;
   if(bday!=='all'&&dl.indexOf(bday)<0)bday='all';
 }
 function stats(pid){
@@ -118,36 +119,22 @@ function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorag
 
 function selCard(board,manage){
   var gl=groups(),dl=days();
-  return '<div class="card"><div class="row"><select id="gs" aria-label="Evaluation group" style="margin:0">'+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select>'+(manage?'<button id="ga">+ Group</button>':'')+'</div>'+
-   '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation session" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All sessions (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Session</button>':'')+'</div>'+(manage?'<button id="ge" style="margin-top:12px">Edit group name</button><button id="de" style="margin-top:12px">Edit session name</button><div id="groupMsg" class="inlineMessage" role="status"></div><div id="sessionMsg" class="inlineMessage" role="status"></div>':'')+'</div>';
+  return '<div class="card"><div class="row"><select id="gs" aria-label="Evaluation group" style="margin:0">'+(gl.length?'':'<option value="">No groups yet</option>')+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select>'+(manage?'<button id="ga">+ Group</button>':'')+'</div>'+
+   '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation session" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All sessions (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Session</button>':'')+'</div>'+(manage?'<button id="ge" style="margin-top:12px">Edit group</button><button id="de" style="margin-top:12px">Edit session</button><div id="groupMsg" class="inlineMessage" role="status"></div><div id="sessionMsg" class="inlineMessage" role="status"></div>':'')+'</div>';
 }
 function bindSel(board){
   $('gs').onchange=function(e){grp=e.target.value;ls('tg',grp);sel=null;open=null;bday='all';render()};
   if($('ga'))$('ga').onclick=async function(){
     var n=(prompt('New group name (e.g. 10U)')||'').trim();if(!n)return;
     if(groups().some(function(g){return g.toLowerCase()===n.toLowerCase()})){alert('That group name already exists.');return}
-    if(n.length>80){alert('Use a group name of 80 characters or fewer.');return}
+    if(n.length>80||['__proto__','constructor','prototype'].includes(n)){alert('Use a valid group name of 80 characters or fewer.');return}
     var config={criteria:[],weights:{},categorySources:{}},patch={};patch[groupKey(n)]=config;
     var next=Array.from(new Set(xg.concat(groups(),n)));
     try{await setDoc(eventRef(),{groups:next,groupSetups:patch},{merge:true});groupSetups[groupKey(n)]=config;xg=next;grp=n;ls('tg',n);sel=null;open=null;day=null;bday='all';render()}catch(e){alert('Could not save the group. Try again.')}
   };
-  if($('ge'))$('ge').onclick=async function(){
-    var old=grp,answer=prompt('Edit group name',old);if(answer===null)return;var name=answer.trim();
-    if(!name){$('groupMsg').textContent='Enter a group name.';return}if(name===old)return;
-    if(name.length>80){$('groupMsg').textContent='Use a group name of 80 characters or fewer.';return}
-    if(groups().some(function(g){return g!==old&&g.toLowerCase()===name.toLowerCase()})){$('groupMsg').textContent='That group name already exists. Choose another name.';return}
-    var btn=$('ge');btn.disabled=true;btn.textContent='Saving…';
-    try{await renameGroup(old,name);render();if($('groupMsg'))$('groupMsg').textContent='Group renamed ✓'}catch(e){render();if($('groupMsg'))$('groupMsg').textContent=e.message==='group-too-large'?'This group is too large to rename in one update (maximum 499 players).':'Could not rename the group. Try again.'}
-  };
-  if($('de'))$('de').onclick=async function(){
-    var g=grp,old=day,answer=prompt('Edit session name',old);if(answer===null)return;var name=answer.trim();
-    if(!name){$('sessionMsg').textContent='Enter a session name.';return}if(name===old)return;
-    if(name.length>80){$('sessionMsg').textContent='Use a session name of 80 characters or fewer.';return}
-    if(name.toLowerCase()==='all'){$('sessionMsg').textContent='Choose a name other than All.';return}
-    if(days().some(function(d){return d!==old&&d.toLowerCase()===name.toLowerCase()})){$('sessionMsg').textContent='That session name already exists in this group.';return}
-    var btn=$('de');btn.disabled=true;btn.textContent='Saving…';
-    try{await renameSession(g,old,name);render();if($('sessionMsg'))$('sessionMsg').textContent='Session renamed ✓'}catch(e){render();if($('sessionMsg'))$('sessionMsg').textContent=e.message==='session-too-large'?'This session has more than 499 evaluations and cannot be renamed in one update.':'Could not rename the session. Try again.'}
-  };
+  if($('ge')){$('ge').disabled=!grp;$('ge').onclick=function(){structureDialog('group')}};
+  if($('de')){$('de').disabled=!grp||!day;$('de').onclick=function(){structureDialog('session')}};
+  if($('da'))$('da').disabled=!grp;
   $('ds').onchange=function(e){if(board)bday=e.target.value;else day=e.target.value;render()};
   if($('da'))$('da').onclick=async function(){
     var dl=days(),g=grp,n=(prompt('New session name',"Session "+(dl.length+1))||'').trim();if(!n)return;if(n.length>80||n.toLowerCase()==='all'){alert('Use 1–80 characters and a name other than All.');return}
@@ -195,7 +182,7 @@ function render(){
   $('accountBar').style.display='flex';$('t3').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
   $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';
   var m=gp().filter(function(p){return mine(p.id)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
-  $('sub').textContent=(isOrganizer()?'Organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+grp+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · you scored '+m+' of '+gp().length+' on '+day:'');
+  $('sub').textContent=(isOrganizer()?'Organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · you scored '+m+' of '+gp().length+' on '+day:'');
   tab==1?renderScore():tab==2?renderBoard():renderSetup();
 }
 function renderLogin(){
@@ -238,33 +225,32 @@ function parseRosterCSV(text){
   if(cell||row.length||closed){row.push(cell);rows.push(row)}
   return rows.filter(function(r){return r.some(function(v){return v.trim()!==''})});
 }
-function rosterKey(p){return JSON.stringify([p.grp,String(Number(p.num))])}
+function rosterKey(p){return JSON.stringify([p.level||G(p)||'',String(Number(p.num))])}
 function validateRosterCSV(text){
-  var data=parseRosterCSV(text);if(data.length<2)throw new Error('Include a header row and at least one player.');
-  var headers=data.shift().map(function(v){return v.trim().toLowerCase().replace(/[^a-z0-9]/g,'')});
-  function column(aliases){var matches=headers.map(function(h,i){return aliases.includes(h)?i:-1}).filter(function(i){return i>=0});if(matches.length!==1)throw new Error('Include exactly one column for each: Player Name, Tryout #, Playing Level.');return matches[0]}
-  var ni=column(['playername','name']),ti=column(['tryout','tryoutnumber','tryoutno','playernumber','number']),li=column(['playinglevel','level','group']);
-  var seen=new Set(),rows=[],errors=[];
-  if(data.length>498)throw new Error('Import up to 498 players at a time. Split larger rosters into separate files.');
-  data.forEach(function(r,i){
-    var name=(r[ni]||'').trim(),num=(r[ti]||'').trim(),level=(r[li]||'').trim(),problem='';
-    if(r.length!==headers.length)problem='Column count does not match the header.';
-    else if(!name||name.length>80)problem='Player name must contain 1–80 characters.';
-    else if(!/^\d+$/.test(num)||!Number.isSafeInteger(Number(num)))problem='Tryout # must be a whole number using digits only.';
-    else if(!level||level.length>50||/[\x00-\x1f]/.test(level)||['__proto__','constructor','prototype'].includes(level))problem='Playing level must contain 1–50 characters.';
-    var p={name:name,num:String(Number(num)),grp:level},key=rosterKey(p);
-    if(!problem&&seen.has(key))problem='Duplicate tryout number in the same playing level.';
-    if(problem)errors.push('Row '+(i+2)+': '+problem);else{seen.add(key);rows.push(p)}
-  });
-  return {rows:rows,errors:errors};
+ var data=parseRosterCSV(text);if(data.length<2)throw new Error('Include a header row and at least one player.');
+ var headers=data.shift().map(function(v){return v.trim().toLowerCase().replace(/[^a-z0-9]/g,'')});
+ function column(aliases){var matches=headers.map(function(h,i){return aliases.includes(h)?i:-1}).filter(function(i){return i>=0});if(matches.length!==1)throw new Error('Include exactly one column for each: Last Name, First Name, Tryout #, Playing Level, Position.');return matches[0]}
+ var last=column(['lastname','surname']),first=column(['firstname','givenname']),ti=column(['tryout','tryoutnumber','tryoutno','playernumber','number']),li=column(['playinglevel','level']),pi=column(['position']);
+ if(data.length>498)throw new Error('Import up to 498 players at a time. Split larger rosters into separate files.');
+ var seen=new Set(),rows=[],errors=[];
+ data.forEach(function(r,i){var ln=(r[last]||'').trim(),fn=(r[first]||'').trim(),num=(r[ti]||'').trim(),level=(r[li]||'').trim(),position=(r[pi]||'').trim(),problem='';
+ if(r.length!==headers.length)problem='Column count does not match the header.';
+ else if(!ln||!fn||(fn+' '+ln).length>80)problem='Enter first and last names, with a combined name of at most 80 characters.';
+ else if(!/^\d+$/.test(num)||!Number.isSafeInteger(Number(num)))problem='Tryout # must be a whole number using digits only.';
+ else if(!level||level.length>50||/[\x00-\x1f]/.test(level))problem='Playing level must contain 1–50 characters.';
+ else if(position.length>40||/[\x00-\x1f]/.test(position))problem='Position must be at most 40 characters.';
+ var p={lastName:ln,firstName:fn,name:fn+' '+ln,num:String(Number(num)),level:level,position:position,grp:''},key=rosterKey(p);
+ if(!problem&&seen.has(key))problem='Duplicate tryout number in the same playing level.';
+ if(problem)errors.push('Row '+(i+2)+': '+problem);else{seen.add(key);rows.push(p)}
+ });return {rows:rows,errors:errors};
 }
-function rosterImportPlan(){var existing=new Set(players.map(function(p){return rosterKey({grp:G(p),num:p.num})}));return rosterImport.rows.filter(function(p){return !existing.has(rosterKey(p))})}
+function rosterImportPlan(){var existing=new Set(players.map(rosterKey));return rosterImport.rows.filter(function(p){return !existing.has(rosterKey(p))})}
 function csvImportCard(){
   var plan=rosterImportPlan(),skipped=rosterImport.rows.length-plan.length,s=rosterImport;
-  return '<div class="card"><b>Import players from CSV</b><div class="mut" style="margin:8px 0">Columns: Player Name, Tryout #, Playing Level. Playing levels become groups. Up to 498 players per file. Existing numbers in the same level are skipped.</div><button id="rosterTemplate">Download CSV template</button><label for="rosterFile" style="margin-top:12px">Choose roster CSV</label><input id="rosterFile" type="file" accept=".csv,text/csv"'+(s.busy||s.loading?' disabled':'')+'><div role="status" aria-live="polite">'+esc(s.loading?'Reading CSV…':s.message)+'</div>'+(s.errors.length?'<div class="warn">Fix these rows and choose the file again:</div><ul>'+s.errors.slice(0,10).map(function(e){return '<li>'+esc(e)+'</li>'}).join('')+'</ul>'+(s.errors.length>10?'<div class="mut">'+s.errors.length+' total errors.</div>':''):'')+(s.rows.length?'<p>'+plan.length+' players to add · '+skipped+' existing players skipped</p><div class="tw"><table><thead><tr><th>Player name</th><th>Tryout #</th><th>Playing level</th></tr></thead><tbody>'+plan.slice(0,10).map(function(p){return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.num)+'</td><td>'+esc(p.grp)+'</td></tr>'}).join('')+'</tbody></table></div>'+(plan.length>10?'<div class="mut">Preview shows the first 10 players.</div>':'')+'<button class="pri" id="importRoster" style="margin-top:12px"'+(s.busy||s.loading||s.errors.length||!plan.length?' disabled':'')+'>'+(s.busy?'Importing…':'Import '+plan.length+' players')+'</button>':'')+'</div>';
+  return '<div class="card"><b>Import players from CSV</b><div class="mut" style="margin:8px 0">Columns: Last Name, First Name, Tryout #, Playing Level, Position. Players import as Unassigned; playing level does not assign a group. Position values may be left blank. Up to 498 players per file. Existing numbers in the same level are skipped.</div><button id="rosterTemplate">Download CSV template</button><label for="rosterFile" style="margin-top:12px">Choose roster CSV</label><input id="rosterFile" type="file" accept=".csv,text/csv"'+(s.busy||s.loading?' disabled':'')+'><div role="status" aria-live="polite">'+esc(s.loading?'Reading CSV…':s.message)+'</div>'+(s.errors.length?'<div class="warn">Fix these rows and choose the file again:</div><ul>'+s.errors.slice(0,10).map(function(e){return '<li>'+esc(e)+'</li>'}).join('')+'</ul>'+(s.errors.length>10?'<div class="mut">'+s.errors.length+' total errors.</div>':''):'')+(s.rows.length?'<p>'+plan.length+' players to add · '+skipped+' existing players skipped</p><div class="tw"><table><thead><tr><th>Last name</th><th>First name</th><th>Tryout #</th><th>Playing level</th><th>Position</th></tr></thead><tbody>'+plan.slice(0,10).map(function(p){return '<tr><td>'+esc(p.lastName)+'</td><td>'+esc(p.firstName)+'</td><td>'+esc(p.num)+'</td><td>'+esc(p.level)+'</td><td>'+esc(p.position)+'</td></tr>'}).join('')+'</tbody></table></div>'+(plan.length>10?'<div class="mut">Preview shows the first 10 players.</div>':'')+'<button class="pri" id="importRoster" style="margin-top:12px"'+(s.busy||s.loading||s.errors.length||!plan.length?' disabled':'')+'>'+(s.busy?'Importing…':'Import '+plan.length+' players')+'</button>':'')+'</div>';
 }
 function bindRosterImport(){
-  $('rosterTemplate').onclick=function(){var blob=new Blob(['Player Name,Tryout #,Playing Level\r\nAlex Smith,12,10U\r\nJordan Lee,27,12U\r\n'],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='players-template.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)};
+  $('rosterTemplate').onclick=function(){var blob=new Blob(['Last Name,First Name,Tryout #,Playing Level,Position\r\nSmith,Alex,12,10U,Forward\r\nLee,Jordan,27,12U,Goalie\r\n'],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='players-template.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)};
   $('rosterFile').onchange=async function(){
     var file=this.files[0],event=code,state=rosterImport;if(!file)return;state.rows=[];state.errors=[];state.message='';state.loading=true;renderSetup();
     try{if(file.size>2*1024*1024)throw new Error('Choose a CSV smaller than 2 MB.');var result=validateRosterCSV(await file.text());if(code!==event||rosterImport!==state)return;state.rows=result.rows;state.errors=result.errors;state.message='Preview ready. Check the roster before importing.'}catch(e){if(rosterImport===state)state.message=e.message}finally{state.loading=false;if(code===event&&rosterImport===state&&tab===3&&isOrganizer())renderSetup()}
@@ -274,10 +260,10 @@ function bindRosterImport(){
     var pending=rosterImportPlan();if(!pending.length)return;
     var event=code,state=rosterImport;state.busy=true;state.message='';renderSetup();
     try{
-      var batch=writeBatch(fs),nextGroups=Array.from(new Set(groups().concat(pending.map(function(p){return p.grp})))),added=[];
+      var batch=writeBatch(fs),added=[];
       pending.forEach(function(p){var ref=doc(collection(fs,'tryouts',event,'players'));batch.set(ref,p);added.push(Object.assign({id:ref.id},p))});
-      batch.set(doc(fs,'tryouts',event),{groups:nextGroups},{merge:true});await batch.commit();
-      if(code===event&&rosterImport===state){added.forEach(function(p){if(!players.some(function(x){return x.id===p.id}))players.push(p)});xg=nextGroups;state.rows=[];state.message=pending.length+' players imported ✓'}
+      await batch.commit();
+      if(code===event&&rosterImport===state){added.forEach(function(p){if(!players.some(function(x){return x.id===p.id}))players.push(p)});state.rows=[];state.message=pending.length+' players imported as Unassigned ✓'}
     }catch(e){if(rosterImport===state)state.message='Import failed. Check your connection and organizer permissions, then try again.'}finally{state.busy=false;if(code===event&&rosterImport===state&&tab===3&&isOrganizer())renderSetup()}
   };
 }
@@ -287,6 +273,7 @@ function addPlayersCard(){
 }
 function renderScore(){
   var h=selCard(false);
+  if(!grp||!day){$('v').innerHTML=h+'<div class="card mut">The organizer must create a group and session before scoring.</div>';bindSel(false);return}
   if(!C.length){$('v').innerHTML=h+'<div class="card mut">Set up measurement categories for '+esc(grp)+' in Settings before scoring.</div>';bindSel(false);return}
   var sp=sortP();
   if(!sp.length){$('v').innerHTML=h+'<div class="card mut">The organizer has not added players to '+esc(grp)+' yet.</div>';bindSel(false);return}
@@ -313,12 +300,12 @@ function renderSetup(){
   if(!isOrganizer()){tab=1;render();return}
   if(!setupDraft||setupDraft.group!==grp)setupDraft={group:grp,items:C.length?C.map(function(c){return {name:c,original:c,weight:W[c]}}):Array.from({length:4},function(){return {name:'',original:null,weight:25}}),max:SM,display:playerDisplay};
   var sd=setupDraft;
-  var h='<div class="card"><b>'+esc(eventName||code)+'</b><div class="mut">Event code: <strong>'+esc(code)+'</strong> · Organizer only</div><button id="copyCode" style="margin-top:10px">Copy event code</button><button id="renameEvent" style="margin-top:10px">Edit event name</button><div class="inlineMessage" id="eventMsg" role="status"></div></div><div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+csvImportCard()+'<div class="card"><b>Evaluation setup · '+esc(grp)+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
+  var h='<div class="card"><b>'+esc(eventName||code)+'</b><div class="mut">Event code: <strong>'+esc(code)+'</strong> · Organizer only</div><button id="copyCode" style="margin-top:10px">Copy event code</button><button id="renameEvent" style="margin-top:10px">Edit event name</button><div class="inlineMessage" id="eventMsg" role="status"></div></div><div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+csvImportCard()+assignmentCard()+'<div class="card"><b>Evaluation setup · '+esc(grp||'No group selected')+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
   sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" placeholder="update measurement category" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
   h+='<div class="row" style="margin-top:14px"><button id="ca"'+(sd.items.length>=MAX_C?' disabled':'')+'>+ Category</button><span class="pill" id="wt"></span></div><button id="equal" style="margin-top:10px">Equal weights</button><button class="pri" id="cs" style="width:100%;margin-top:14px">Save setup</button><div class="inlineMessage" id="cm" role="status"></div></div><div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear evaluation scores for this event. Players and setup are kept.</div><button class="danger" id="clearScores">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
-  h+='<div class="card player-management"><b>Manage players</b><label for="editPlayerSelect">Player to edit</label><select id="editPlayerSelect"><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button id="editPlayerBtn" disabled>Edit player / number</button><div class="mut" style="margin-top:18px">Remove an accidentally added player from any group. Their evaluations and comments will also be permanently deleted.</div><label for="removePlayerSelect">Player to remove</label><select id="removePlayerSelect"'+(removingPlayer?' disabled':'')+'><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button class="danger" id="removePlayerBtn" disabled>'+(removingPlayer?'Removing…':'Remove player')+'</button><div class="inlineMessage" id="removePlayerMsg" role="status"></div></div>';
+  h+='<div class="card player-management"><b>Manage players</b><label for="editPlayerSelect">Player to edit</label><select id="editPlayerSelect"><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(groupLabel(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button id="editPlayerBtn" disabled>Edit player / number</button><div class="mut" style="margin-top:18px">Remove an accidentally added player from any group. Their evaluations and comments will also be permanently deleted.</div><label for="removePlayerSelect">Player to remove</label><select id="removePlayerSelect"'+(removingPlayer?' disabled':'')+'><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(groupLabel(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button class="danger" id="removePlayerBtn" disabled>'+(removingPlayer?'Removing…':'Remove player')+'</button><div class="inlineMessage" id="removePlayerMsg" role="status"></div></div>';
   $('v').innerHTML=h;
-  bindAdd();bindSel(false);bindRosterImport();
+  bindAdd();bindSel(false);bindRosterImport();bindAssignment();if(!grp){$('cs').disabled=true;$('cm').textContent='Create a group before saving evaluation setup.'}
   $('copyCode').onclick=async function(){try{await navigator.clipboard.writeText(code);$('eventMsg').textContent='Event code copied ✓'}catch(e){$('eventMsg').textContent='Event code: '+code}};
   $('renameEvent').onclick=async function(){var n=prompt('Event name',eventName||code);if(n===null)return;n=n.trim();if(!n||n.length>100){$('eventMsg').textContent='Enter a name of 1–100 characters.';return}try{await setDoc(eventRef(),{eventName:n},{merge:true})}catch(e){$('eventMsg').textContent='Could not save the event name.'}};
   $('editPlayerSelect').onchange=function(){$('editPlayerBtn').disabled=!this.value};
@@ -370,10 +357,11 @@ function editPlayer(id){
   if(players.some(function(x){return x.id!==p.id&&G(x)===G(p)&&Number(x.num)===Number(num)})){alert('That number is already in this group.');return}
   var data={num:num};
   if(playerDisplay!=='number'){var name=prompt('Player name (optional)',p.name||'');if(name===null)return;data.name=name.trim().slice(0,80)}
+  var position=prompt('Position (optional)',p.position||'');if(position===null)return;if(position.trim().length>40){alert('Use a position of 40 characters or fewer.');return}data.position=position.trim();
   setDoc(doc(fs,'tryouts',code,'players',p.id),data,{merge:true}).catch(function(){alert('Could not update player. Try again.')});
 }
 function bindAdd(){
-  var a=$('pa');if(!a)return;
+  var a=$('pa');if(!a)return;if(!grp){a.disabled=true;$('addMsg').textContent='Create a group to add players manually, or import an unassigned roster below.';return}
   a.onclick=async function(){
     var g=grp,nums=[],invalid=false;
     $('pu').value.split(',').forEach(function(t){t=t.trim();var m=t.match(/^(\d+)\s*-\s*(\d+)$/);if(m){if(+m[2]<+m[1]||+m[2]-+m[1]>=300){invalid=true;return}for(var i=+m[1];i<=+m[2];i++)nums.push(String(i))}else if(/^\d+$/.test(t))nums.push(t);else invalid=true});
@@ -420,6 +408,20 @@ async function start(c,n,requireOwner){
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){if(attempt!==connectionId)return;scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   render();
 }
+
+var assignmentBusy=false;
+function managementDialog(title,body){var el=$('managementDialog');if(!el){el=document.createElement('dialog');el.id='managementDialog';document.body.appendChild(el)}el.innerHTML='<form method="dialog"><div class="row"><h2>'+esc(title)+'</h2><button aria-label="Close">✕</button></div></form>'+body;el.showModal();return el}
+function structureDialog(kind){if(!isOrganizer())return;var g=grp,old=kind==='group'?g:day;if(!old)return;var el=managementDialog('Edit '+kind,'<label for="structureName">Name</label><input id="structureName" maxlength="80" value="'+esc(old)+'"><p class="mut">'+(kind==='group'?'Deleting this group moves its players to Unassigned and keeps their evaluations. Group categories and session setup will be removed.':'Deleting this session permanently removes its evaluations and comments for players currently in this group.')+'</p><div class="row"><button class="danger" id="structureDelete">Delete '+kind+'</button><button class="pri" id="structureSave">Save name</button></div><p id="structureError" role="alert" class="warn"></p>');
+ async function action(remove){if(!isOrganizer())return;var name=$('structureName').value.trim();if(!remove){if(!name||name.length>80||['__proto__','constructor','prototype'].includes(name)){$('structureError').textContent='Enter a valid name of 1–80 characters.';return}if(name===old){el.close();return}if((kind==='group'?groups():days()).some(function(x){return x!==old&&x.toLowerCase()===name.toLowerCase()})||(kind==='session'&&name.toLowerCase()==='all')){$('structureError').textContent='That name is unavailable.';return}}else if(!confirm(kind==='group'?'Delete '+old+'? Players move to Unassigned and evaluations are kept.':'Permanently delete '+old+' and its evaluations and comments? This cannot be undone.'))return;
+ $('structureDelete').disabled=true;$('structureSave').disabled=true;try{if(remove){if(kind==='group')await deleteGroup(g);else await deleteSession(g,old)}else{if(kind==='group')await renameGroup(old,name);else await renameSession(g,old,name)}el.close();render()}catch(e){$('structureError').textContent=/too-large/.test(e.message)?'This change exceeds the 499-item limit. Move players or remove evaluations first.':'Could not save this change. Check your connection and retry.';$('structureDelete').disabled=false;$('structureSave').disabled=false}}
+ $('structureSave').onclick=function(){action(false)};$('structureDelete').onclick=function(){action(true)};
+}
+async function deleteGroup(g){if(!isOrganizer())throw Error('not-owner');var roster=players.filter(function(p){return G(p)===g});if(roster.length>499)throw Error('group-too-large');var next=groups().filter(function(x){return x!==g}),dp={},sp={};dp[g]=deleteField();sp[groupKey(g)]=deleteField();var batch=writeBatch(fs);roster.forEach(function(p){batch.set(doc(fs,'tryouts',code,'players',p.id),{grp:'',level:p.level||g},{merge:true})});batch.set(eventRef(),{groups:next,groupDays:dp,groupSetups:sp},{merge:true});await batch.commit();players=players.map(function(p){return G(p)===g?Object.assign({},p,{grp:'',level:p.level||g}):p});xg=next;delete xd[g];delete groupSetups[groupKey(g)];grp=next[0]||null;day=null;bday='all';sel=null;open=null;draft={};nd={};setupDraft=null;ls('tg',grp||'')}
+async function deleteSession(g,d){if(!isOrganizer())throw Error('not-owner');var ids=new Set(players.filter(function(p){return G(p)===g}).map(function(p){return p.id})),affected=scores.filter(function(s){return ids.has(s.player)&&D(s)===d});if(affected.length>499)throw Error('session-too-large');var remaining=Array.from(new Set((xd[g]||[]).concat(scores.filter(function(s){return ids.has(s.player)}).map(D)))).filter(function(x){return x!==d}),patch={};patch[g]=remaining;var batch=writeBatch(fs);affected.forEach(function(s){batch.delete(doc(fs,'tryouts',code,'scores',s.id))});batch.set(eventRef(),{groupDays:patch},{merge:true});await batch.commit();xd[g]=remaining;scores=scores.filter(function(s){return !(ids.has(s.player)&&D(s)===d)});[draft,nd].forEach(function(cache){ids.forEach(function(id){delete cache[id+'|'+d]})});day=remaining[0]||null;bday='all';sel=null;open=null}
+function assignmentCard(){var ps=players.slice().sort(function(a,b){return nat(groupLabel(a),groupLabel(b))||nat(a.level||'',b.level||'')||nat(String(a.num),String(b.num))});return '<div class="card"><b>Assign players to groups</b><p class="mut">Select players, then choose their group. Imported players start Unassigned. Playing level and position are kept when players move.</p><label for="assignmentFilter">Show players</label><select id="assignmentFilter"><option value="unassigned">Unassigned</option><option value="all">All players</option>'+groups().map(function(g){return '<option value="group:'+esc(g)+'">'+esc(g)+'</option>'}).join('')+'</select><div class="tw"><table><thead><tr><th><input type="checkbox" id="assignmentAll" aria-label="Select all visible players"></th><th>Player</th><th>Tryout #</th><th>Level</th><th>Position</th><th>Group</th></tr></thead><tbody>'+ps.map(function(p){return '<tr data-assignment-row data-group="'+esc(G(p))+'"><td><input type="checkbox" data-assignment-player="'+esc(p.id)+'" aria-label="Select '+esc(p.name||p.num)+'"></td><td>'+esc(p.name||'—')+'</td><td>'+esc(p.num)+'</td><td>'+esc(p.level||G(p)||'—')+'</td><td>'+esc(p.position||'—')+'</td><td>'+esc(groupLabel(p))+'</td></tr>'}).join('')+'</tbody></table></div>'+(ps.length?'':'<p class="mut">Add or import players to assign them.</p>')+'<label for="assignmentGroup">Assign selected players to</label><select id="assignmentGroup"><option value="">Unassigned</option>'+groups().map(function(g){return '<option value="'+esc(g)+'">'+esc(g)+'</option>'}).join('')+'</select><button id="assignmentSave" class="pri"'+(assignmentBusy?' disabled':'')+'>Assign players</button><p id="assignmentMessage" class="mut" role="status"></p></div>'}
+function bindAssignment(){function filter(){var value=$('assignmentFilter').value;document.querySelectorAll('[data-assignment-row]').forEach(function(row){row.hidden=value==='unassigned'?!!row.dataset.group:value==='all'?false:row.dataset.group!==value.slice(6);row.querySelector('input').checked=false});$('assignmentAll').checked=false}filter();$('assignmentFilter').onchange=filter;$('assignmentAll').onchange=function(){var checked=this.checked;document.querySelectorAll('[data-assignment-row]').forEach(function(row){if(!row.hidden)row.querySelector('input').checked=checked})};$('assignmentSave').onclick=async function(){if(!isOrganizer()||assignmentBusy)return;var ids=Array.from(document.querySelectorAll('[data-assignment-row]')).filter(function(row){return !row.hidden&&row.querySelector('input').checked}).map(function(row){return row.querySelector('input').dataset.assignmentPlayer}),target=$('assignmentGroup').value;if(!ids.length){$('assignmentMessage').textContent='Select at least one player.';return}assignmentBusy=true;this.disabled=true;try{await assignPlayers(ids,target);assignmentBusy=false;render();$('assignmentMessage').textContent=ids.length+' players assigned to '+(target||'Unassigned')+' ✓'}catch(e){assignmentBusy=false;$('assignmentSave').disabled=false;$('assignmentMessage').textContent=e.message||'Could not assign players.'}}}
+async function assignPlayers(ids,target){if(!isOrganizer())throw Error('Organizer access required.');if(ids.length>499)throw Error('Assign up to 499 players at a time.');if(target&&!groups().includes(target))throw Error('This group no longer exists.');var selected=new Set(ids),numbers=new Set();players.filter(function(p){return target&&(G(p)===target||selected.has(p.id))}).forEach(function(p){var n=String(Number(p.num));if(numbers.has(n))throw Error('Duplicate tryout #'+n+' in the destination group. Assign different numbers first.');numbers.add(n)});var roster=players.filter(function(p){return selected.has(p.id)});if(roster.length!==selected.size)throw Error('A selected player no longer exists.');var batch=writeBatch(fs);roster.forEach(function(p){batch.set(doc(fs,'tryouts',code,'players',p.id),{grp:target,level:p.level||G(p)||''},{merge:true})});await batch.commit();players=players.map(function(p){return selected.has(p.id)?Object.assign({},p,{grp:target,level:p.level||G(p)||''}):p});sel=null;open=null;draft={};nd={}}
+
 $('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t3').onclick=function(){if(isOrganizer()){tab=3;setupDraft=null;render()}};
 $('leaveEvent').onclick=function(){stopEvent();renderLogin()};
 $('signOutBtn').onclick=async function(){stopEvent();await signOut(auth);renderLogin()};
