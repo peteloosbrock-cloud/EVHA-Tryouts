@@ -39,7 +39,7 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.0</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.1</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -60,7 +60,7 @@ var auth=null,organizer=false,eventName='',loginMode='evaluator',connectionId=0;
 function isOrganizer(){return organizer&&auth.currentUser&&!auth.currentUser.isAnonymous}
 function normalizeCode(c){return c.trim().toUpperCase()}
 function validCode(c){return /^[A-Z0-9][A-Z0-9-]{3,23}$/.test(c)}
-function stopEvent(){connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
+function stopEvent(){rosterImport={rows:[],errors:[],message:"",busy:false,loading:false};connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
 function authError(e){return e.code==='auth/operation-not-allowed'?'Enable Email/Password and Anonymous sign-in in Firebase first.':e.code==='auth/email-already-in-use'?'This email already has an account. Choose Sign in.':e.code==='auth/weak-password'?'Choose a stronger password (at least 6 characters).':e.code==='permission-denied'?'Access denied. Check the Firebase rules and event ownership.':e.code==='auth/too-many-requests'?'Too many attempts. Please try again later.':'Could not complete this action. Check your details and connection.'}
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
 var playerDisplay='number',categorySources={},setupDraft=null,removingPlayer=false;
@@ -222,6 +222,66 @@ function renderLogin(){
     $('openEvent').onclick=function(){openOwned($('ownEvents').value)};$('openCode').onclick=function(){openOwned(normalizeCode($('existingCode').value))};$('logout').onclick=async function(){await signOut(auth);renderLogin()};
   }
 }
+var rosterImport={rows:[],errors:[],message:'',busy:false,loading:false};
+function parseRosterCSV(text){
+  text=text.replace(/^\uFEFF/,'');
+  var rows=[],row=[],cell='',quoted=false,closed=false;
+  for(var i=0;i<text.length;i++){
+    var c=text[i];
+    if(quoted){if(c==='"'){if(text[i+1]==='"'){cell+='"';i++}else{quoted=false;closed=true}}else cell+=c;continue}
+    if(c==='"'){if(cell||closed)throw new Error('Unexpected quote in CSV.');quoted=true}
+    else if(c===','){row.push(cell);cell='';closed=false}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell='';closed=false}
+    else{if(closed)throw new Error('Unexpected text after a quoted CSV field.');cell+=c}
+  }
+  if(quoted)throw new Error('A quoted CSV field is missing its closing quote.');
+  if(cell||row.length||closed){row.push(cell);rows.push(row)}
+  return rows.filter(function(r){return r.some(function(v){return v.trim()!==''})});
+}
+function rosterKey(p){return JSON.stringify([p.grp,String(Number(p.num))])}
+function validateRosterCSV(text){
+  var data=parseRosterCSV(text);if(data.length<2)throw new Error('Include a header row and at least one player.');
+  var headers=data.shift().map(function(v){return v.trim().toLowerCase().replace(/[^a-z0-9]/g,'')});
+  function column(aliases){var matches=headers.map(function(h,i){return aliases.includes(h)?i:-1}).filter(function(i){return i>=0});if(matches.length!==1)throw new Error('Include exactly one column for each: Player Name, Tryout #, Playing Level.');return matches[0]}
+  var ni=column(['playername','name']),ti=column(['tryout','tryoutnumber','tryoutno','playernumber','number']),li=column(['playinglevel','level','group']);
+  var seen=new Set(),rows=[],errors=[];
+  if(data.length>498)throw new Error('Import up to 498 players at a time. Split larger rosters into separate files.');
+  data.forEach(function(r,i){
+    var name=(r[ni]||'').trim(),num=(r[ti]||'').trim(),level=(r[li]||'').trim(),problem='';
+    if(r.length!==headers.length)problem='Column count does not match the header.';
+    else if(!name||name.length>80)problem='Player name must contain 1–80 characters.';
+    else if(!/^\d+$/.test(num)||!Number.isSafeInteger(Number(num)))problem='Tryout # must be a whole number using digits only.';
+    else if(!level||level.length>50||/[\x00-\x1f]/.test(level)||['__proto__','constructor','prototype'].includes(level))problem='Playing level must contain 1–50 characters.';
+    var p={name:name,num:String(Number(num)),grp:level},key=rosterKey(p);
+    if(!problem&&seen.has(key))problem='Duplicate tryout number in the same playing level.';
+    if(problem)errors.push('Row '+(i+2)+': '+problem);else{seen.add(key);rows.push(p)}
+  });
+  return {rows:rows,errors:errors};
+}
+function rosterImportPlan(){var existing=new Set(players.map(function(p){return rosterKey({grp:G(p),num:p.num})}));return rosterImport.rows.filter(function(p){return !existing.has(rosterKey(p))})}
+function csvImportCard(){
+  var plan=rosterImportPlan(),skipped=rosterImport.rows.length-plan.length,s=rosterImport;
+  return '<div class="card"><b>Import players from CSV</b><div class="mut" style="margin:8px 0">Columns: Player Name, Tryout #, Playing Level. Playing levels become groups. Up to 498 players per file. Existing numbers in the same level are skipped.</div><button id="rosterTemplate">Download CSV template</button><label for="rosterFile" style="margin-top:12px">Choose roster CSV</label><input id="rosterFile" type="file" accept=".csv,text/csv"'+(s.busy||s.loading?' disabled':'')+'><div role="status" aria-live="polite">'+esc(s.loading?'Reading CSV…':s.message)+'</div>'+(s.errors.length?'<div class="warn">Fix these rows and choose the file again:</div><ul>'+s.errors.slice(0,10).map(function(e){return '<li>'+esc(e)+'</li>'}).join('')+'</ul>'+(s.errors.length>10?'<div class="mut">'+s.errors.length+' total errors.</div>':''):'')+(s.rows.length?'<p>'+plan.length+' players to add · '+skipped+' existing players skipped</p><div class="tw"><table><thead><tr><th>Player name</th><th>Tryout #</th><th>Playing level</th></tr></thead><tbody>'+plan.slice(0,10).map(function(p){return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.num)+'</td><td>'+esc(p.grp)+'</td></tr>'}).join('')+'</tbody></table></div>'+(plan.length>10?'<div class="mut">Preview shows the first 10 players.</div>':'')+'<button class="pri" id="importRoster" style="margin-top:12px"'+(s.busy||s.loading||s.errors.length||!plan.length?' disabled':'')+'>'+(s.busy?'Importing…':'Import '+plan.length+' players')+'</button>':'')+'</div>';
+}
+function bindRosterImport(){
+  $('rosterTemplate').onclick=function(){var blob=new Blob(['Player Name,Tryout #,Playing Level\r\nAlex Smith,12,10U\r\nJordan Lee,27,12U\r\n'],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='players-template.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)};
+  $('rosterFile').onchange=async function(){
+    var file=this.files[0],event=code,state=rosterImport;if(!file)return;state.rows=[];state.errors=[];state.message='';state.loading=true;renderSetup();
+    try{if(file.size>2*1024*1024)throw new Error('Choose a CSV smaller than 2 MB.');var result=validateRosterCSV(await file.text());if(code!==event||rosterImport!==state)return;state.rows=result.rows;state.errors=result.errors;state.message='Preview ready. Check the roster before importing.'}catch(e){if(rosterImport===state)state.message=e.message}finally{state.loading=false;if(code===event&&rosterImport===state&&tab===3&&isOrganizer())renderSetup()}
+  };
+  if($('importRoster'))$('importRoster').onclick=async function(){
+    if(!isOrganizer()||rosterImport.busy||rosterImport.errors.length)return;
+    var pending=rosterImportPlan();if(!pending.length)return;
+    var event=code,state=rosterImport;state.busy=true;state.message='';renderSetup();
+    try{
+      var batch=writeBatch(fs),nextGroups=Array.from(new Set(groups().concat(pending.map(function(p){return p.grp})))),added=[];
+      pending.forEach(function(p){var ref=doc(collection(fs,'tryouts',event,'players'));batch.set(ref,p);added.push(Object.assign({id:ref.id},p))});
+      batch.set(doc(fs,'tryouts',event),{groups:nextGroups},{merge:true});await batch.commit();
+      if(code===event&&rosterImport===state){added.forEach(function(p){if(!players.some(function(x){return x.id===p.id}))players.push(p)});xg=nextGroups;state.rows=[];state.message=pending.length+' players imported ✓'}
+    }catch(e){if(rosterImport===state)state.message='Import failed. Check your connection and organizer permissions, then try again.'}finally{state.busy=false;if(code===event&&rosterImport===state&&tab===3&&isOrganizer())renderSetup()}
+  };
+}
+
 function addPlayersCard(){
   return '<div class="card"><b>Add players</b><div class="mut" style="margin:6px 0 12px">Enter one number, a range (1-20), or a list (4,7,15). Add a name only for a single player.</div><label for="pu">Player / number</label><div class="row"><input id="pu" placeholder="e.g. 12 or 1-20" style="flex:1;margin:0"><button class="pri" id="pa">Add</button></div>'+(playerDisplay!=='number'?'<label for="pn" style="margin-top:12px">Player name (optional)</label><input id="pn" placeholder="Name for a single player" maxlength="80">':'')+'<div class="inlineMessage" id="addMsg" role="status"></div></div>';
 }
@@ -253,12 +313,12 @@ function renderSetup(){
   if(!isOrganizer()){tab=1;render();return}
   if(!setupDraft||setupDraft.group!==grp)setupDraft={group:grp,items:C.length?C.map(function(c){return {name:c,original:c,weight:W[c]}}):Array.from({length:4},function(){return {name:'',original:null,weight:25}}),max:SM,display:playerDisplay};
   var sd=setupDraft;
-  var h='<div class="card"><b>'+esc(eventName||code)+'</b><div class="mut">Event code: <strong>'+esc(code)+'</strong> · Organizer only</div><button id="copyCode" style="margin-top:10px">Copy event code</button><button id="renameEvent" style="margin-top:10px">Edit event name</button><div class="inlineMessage" id="eventMsg" role="status"></div></div><div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+'<div class="card"><b>Evaluation setup · '+esc(grp)+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
+  var h='<div class="card"><b>'+esc(eventName||code)+'</b><div class="mut">Event code: <strong>'+esc(code)+'</strong> · Organizer only</div><button id="copyCode" style="margin-top:10px">Copy event code</button><button id="renameEvent" style="margin-top:10px">Edit event name</button><div class="inlineMessage" id="eventMsg" role="status"></div></div><div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+csvImportCard()+'<div class="card"><b>Evaluation setup · '+esc(grp)+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
   sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" placeholder="update measurement category" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
   h+='<div class="row" style="margin-top:14px"><button id="ca"'+(sd.items.length>=MAX_C?' disabled':'')+'>+ Category</button><span class="pill" id="wt"></span></div><button id="equal" style="margin-top:10px">Equal weights</button><button class="pri" id="cs" style="width:100%;margin-top:14px">Save setup</button><div class="inlineMessage" id="cm" role="status"></div></div><div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear evaluation scores for this event. Players and setup are kept.</div><button class="danger" id="clearScores">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
   h+='<div class="card player-management"><b>Manage players</b><label for="editPlayerSelect">Player to edit</label><select id="editPlayerSelect"><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button id="editPlayerBtn" disabled>Edit player / number</button><div class="mut" style="margin-top:18px">Remove an accidentally added player from any group. Their evaluations and comments will also be permanently deleted.</div><label for="removePlayerSelect">Player to remove</label><select id="removePlayerSelect"'+(removingPlayer?' disabled':'')+'><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button class="danger" id="removePlayerBtn" disabled>'+(removingPlayer?'Removing…':'Remove player')+'</button><div class="inlineMessage" id="removePlayerMsg" role="status"></div></div>';
   $('v').innerHTML=h;
-  bindAdd();bindSel(false);
+  bindAdd();bindSel(false);bindRosterImport();
   $('copyCode').onclick=async function(){try{await navigator.clipboard.writeText(code);$('eventMsg').textContent='Event code copied ✓'}catch(e){$('eventMsg').textContent='Event code: '+code}};
   $('renameEvent').onclick=async function(){var n=prompt('Event name',eventName||code);if(n===null)return;n=n.trim();if(!n||n.length>100){$('eventMsg').textContent='Enter a name of 1–100 characters.';return}try{await setDoc(eventRef(),{eventName:n},{merge:true})}catch(e){$('eventMsg').textContent='Could not save the event name.'}};
   $('editPlayerSelect').onchange=function(){$('editPlayerBtn').disabled=!this.value};
