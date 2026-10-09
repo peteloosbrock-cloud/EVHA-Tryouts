@@ -37,13 +37,15 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 
 </style></head><body><main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
-<div class="sub" id="sub"></div>
+<div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v4.7</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.0</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getFirestore,collection,doc,setDoc,onSnapshot,writeBatch,deleteField} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,collection,doc,setDoc,onSnapshot,writeBatch,deleteField,getDoc,getDocs,query,where,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+import {getAuth,onAuthStateChanged,signInAnonymously,createUserWithEmailAndPassword,signInWithEmailAndPassword,sendPasswordResetEmail,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // ====== STEP 1: PASTE YOUR FIREBASE CONFIG HERE (see setup steps) ======
 const firebaseConfig = {
@@ -54,6 +56,12 @@ const firebaseConfig = {
 };
 // =======================================================================
 
+var auth=null,organizer=false,eventName='',loginMode='evaluator',connectionId=0;
+function isOrganizer(){return organizer&&auth.currentUser&&!auth.currentUser.isAnonymous}
+function normalizeCode(c){return c.trim().toUpperCase()}
+function validCode(c){return /^[A-Z0-9][A-Z0-9-]{3,23}$/.test(c)}
+function stopEvent(){connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
+function authError(e){return e.code==='auth/operation-not-allowed'?'Enable Email/Password and Anonymous sign-in in Firebase first.':e.code==='auth/email-already-in-use'?'This email already has an account. Choose Sign in.':e.code==='auth/weak-password'?'Choose a stronger password (at least 6 characters).':e.code==='permission-denied'?'Access denied. Check the Firebase rules and event ownership.':e.code==='auth/too-many-requests'?'Too many attempts. Please try again later.':'Could not complete this action. Check your details and connection.'}
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
 var playerDisplay='number',categorySources={},setupDraft=null,removingPlayer=false;
 var groupSetups={},legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}},activeSetupSignature='';
@@ -142,7 +150,7 @@ function bindSel(board){
   };
   $('ds').onchange=function(e){if(board)bday=e.target.value;else day=e.target.value;render()};
   if($('da'))$('da').onclick=async function(){
-    var dl=days(),g=grp,n=(prompt('New session name',"Session "+(dl.length+1))||'').trim();if(!n)return;
+    var dl=days(),g=grp,n=(prompt('New session name',"Session "+(dl.length+1))||'').trim();if(!n)return;if(n.length>80||n.toLowerCase()==='all'){alert('Use 1–80 characters and a name other than All.');return}
     var next=Object.assign({},xd);next[g]=Array.from(new Set((xd[g]||[]).concat(dl,n)));
     try{await setDoc(eventRef(),{groupDays:next},{merge:true});xd=next;grp=g;day=n;render()}catch(e){alert('Could not save the session. Try again.')}
   };
@@ -181,21 +189,38 @@ async function renameGroup(old,name){
 
 function render(){
   if(!myId){renderLogin();return}
+  if(tab===3&&!isOrganizer())tab=1;
   fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
-  $('tabs').style.display='flex';$('progress').hidden=tab!==1;
+  $('accountBar').style.display='flex';$('t3').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
   $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';
   var m=gp().filter(function(p){return mine(p.id)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
-  $('sub').textContent='Evaluator: '+myName+' · '+grp+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · you scored '+m+' of '+gp().length+' on '+day:'');
+  $('sub').textContent=(isOrganizer()?'Organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+grp+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · you scored '+m+' of '+gp().length+' on '+day:'');
   tab==1?renderScore():tab==2?renderBoard():renderSetup();
 }
 function renderLogin(){
-  $('tabs').style.display='none';$('progress').hidden=true;
-  if(false){$('v').innerHTML='<div class="card">Setup needed: paste your Firebase config into the top of this file.</div>';return}
-  $('sub').textContent='';
-  $('v').innerHTML='<div class="card"><h2 class="intro">Ready to evaluate?</h2><div class="mut">Join your event and help every player move forward.</div><div class="crit"><b>Event code</b><input id="lc" placeholder="Shared code from the tryout coordinator" autocapitalize="off"></div><div class="crit"><b>Your name or initials</b><input id="ln" placeholder="e.g. Coach Mike"></div><div class="mut" style="margin-bottom:8px">Use a name no other evaluator uses. Your scores are saved under it.</div><button class="pri" id="lg" style="width:100%">Start</button><div class="mut" id="le" style="margin-top:8px"></div></div>';
-  $('lc').value=ls('tc')||'';$('ln').value=ls('tn')||'';
-  $('lg').onclick=function(){var c=$('lc').value.trim(),n=$('ln').value.trim();if(!c||!n){$('le').textContent='Enter both.';return}start(c,n)};
+  $('tabs').style.display='none';$('accountBar').style.display='none';$('progress').hidden=true;$('sub').textContent='';
+  var signed=auth&&auth.currentUser&&!auth.currentUser.isAnonymous;
+  $('v').innerHTML='<div class="card"><h2 class="intro">Welcome to Pathway Evals</h2><div class="row"><button id="evalMode" class="'+(loginMode==='evaluator'?'pri':'')+'">Join as evaluator</button><button id="orgMode" class="'+(loginMode==='organizer'?'pri':'')+'">Organizer</button></div><div id="loginBody" style="margin-top:16px"></div><div class="inlineMessage" id="le" role="status"></div></div>';
+  $('evalMode').onclick=function(){loginMode='evaluator';renderLogin()};$('orgMode').onclick=function(){loginMode='organizer';renderLogin()};
+  if(loginMode==='evaluator'){
+    $('loginBody').innerHTML='<label for="lc">Event code</label><input id="lc" placeholder="Code from your organizer" autocapitalize="characters" maxlength="24"><label for="ln">Your name or initials</label><input id="ln" placeholder="e.g. Coach Mike" maxlength="80"><div class="mut">Use this same browser to return to your saved scores.</div><button class="pri" id="lg" style="width:100%;margin-top:14px">Join event</button>';
+    $('lc').value=ls('tc')||'';$('ln').value=ls('tn')||'';
+    $('lg').onclick=async function(){var c=normalizeCode($('lc').value),n=$('ln').value.trim();if(!c||!n){$('le').textContent='Enter your event code and name.';return}this.disabled=true;try{await start(c,n)}catch(e){if($('le'))$('le').textContent=authError(e)}finally{if($('lg'))$('lg').disabled=false}};
+  }else if(!signed){
+    $('loginBody').innerHTML='<div class="mut">Create an organizer account to set up events, or sign in to manage your events.</div><label for="oe">Email</label><input id="oe" type="email" autocomplete="email"><label for="op">Password</label><input id="op" type="password" autocomplete="current-password" minlength="6"><div class="row"><button class="pri" id="osi">Sign in</button><button id="osu">Create account</button></div><button id="resetPassword" style="margin-top:12px">Reset password</button>';
+    async function account(create){var email=$('oe').value.trim(),password=$('op').value;if(!email||!password){$('le').textContent='Enter your email and password.';return}$('osi').disabled=$('osu').disabled=true;try{await (create?createUserWithEmailAndPassword(auth,email,password):signInWithEmailAndPassword(auth,email,password));renderLogin()}catch(e){$('le').textContent=authError(e);$('osi').disabled=$('osu').disabled=false}}
+    $('osi').onclick=function(){account(false)};$('osu').onclick=function(){account(true)};
+    $('resetPassword').onclick=async function(){var email=$('oe').value.trim();if(!email){$('le').textContent='Enter your email first.';return}try{await sendPasswordResetEmail(auth,email);$('le').textContent='If an account exists, check your email for reset instructions.'}catch(e){$('le').textContent=authError(e)}};
+  }else{
+    $('loginBody').innerHTML='<div class="mut">Signed in as '+esc(auth.currentUser.email)+'</div><label for="en">New event name</label><input id="en" placeholder="e.g. Fall 2026 Evaluations" maxlength="100"><label for="ec">Choose an event code</label><input id="ec" placeholder="e.g. EVHA2027" autocapitalize="characters" maxlength="24"><div class="mut">4–24 letters, numbers, or hyphens. Share this code with your evaluators. It cannot be changed after creation.</div><button class="pri" id="createEvent" style="width:100%;margin-top:12px">Create event</button><label for="ownEvents" style="margin-top:20px">Your events</label><select id="ownEvents"><option value="">Loading…</option></select><button id="openEvent">Open selected event</button><label for="existingCode" style="margin-top:16px">Open an existing event by code</label><input id="existingCode" placeholder="Event code" maxlength="24"><button id="openCode">Open event</button><button id="logout" style="margin-top:16px">Sign out</button>';
+    $('ec').value='PE-'+Array.from(crypto.getRandomValues(new Uint8Array(8)),function(n){return 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n%32]}).join('');
+    var uid=auth.currentUser.uid;
+    getDocs(query(collection(fs,'tryouts'),where('ownerUid','==',uid))).then(function(r){if(!code&&$('ownEvents')&&auth.currentUser&&auth.currentUser.uid===uid)$('ownEvents').innerHTML='<option value="">Choose an event…</option>'+r.docs.map(function(d){return '<option value="'+esc(d.id)+'">'+esc(d.data().eventName||d.id)+' · '+esc(d.id)+'</option>'}).join('')}).catch(function(){if($('ownEvents'))$('ownEvents').innerHTML='<option value="">Use an event code below</option>'});
+    $('createEvent').onclick=async function(){var c=normalizeCode($('ec').value),name=$('en').value.trim();if(!name||!validCode(c)){$('le').textContent='Enter a name and a valid event code.';return}this.disabled=true;try{await runTransaction(fs,async function(tx){var ref=doc(fs,'tryouts',c),old=await tx.get(ref);if(old.exists())throw new Error('code-in-use');tx.set(ref,{ownerUid:uid,eventName:name,createdAt:Date.now(),groups:['Main'],groupDays:{Main:['Session 1']},criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),scoreMax:10,playerDisplay:'number'})});await start(c,auth.currentUser.email.slice(0,80),true)}catch(e){if($('le'))$('le').textContent=e.message==='code-in-use'?'That code is already used. Choose another.':authError(e)}finally{if($('createEvent'))$('createEvent').disabled=false}};
+    async function openOwned(c){if(!c){$('le').textContent='Choose or enter an event code.';return}try{await start(c,auth.currentUser.email.slice(0,80),true)}catch(e){if($('le'))$('le').textContent=e.message==='not-owner'?'Only this event’s organizer can open it in organizer mode.':authError(e)}}
+    $('openEvent').onclick=function(){openOwned($('ownEvents').value)};$('openCode').onclick=function(){openOwned(normalizeCode($('existingCode').value))};$('logout').onclick=async function(){await signOut(auth);renderLogin()};
+  }
 }
 function addPlayersCard(){
   return '<div class="card"><b>Add players</b><div class="mut" style="margin:6px 0 12px">Enter one number, a range (1-20), or a list (4,7,15). Add a name only for a single player.</div><label for="pu">Player / number</label><div class="row"><input id="pu" placeholder="e.g. 12 or 1-20" style="flex:1;margin:0"><button class="pri" id="pa">Add</button></div>'+(playerDisplay!=='number'?'<label for="pn" style="margin-top:12px">Player name (optional)</label><input id="pn" placeholder="Name for a single player" maxlength="80">':'')+'<div class="inlineMessage" id="addMsg" role="status"></div></div>';
@@ -210,14 +235,14 @@ function renderScore(){
   var m=mine(sel),dk=sel+'|'+day;if(!draft[dk])draft[dk]=mv(m);
   var d=draft[dk];if(nd[dk]===undefined)nd[dk]=m&&m.note?m.note:'';
   h+='<div class="card">'+C.map(function(c){return '<div class="crit"><b>'+esc(c)+'</b><div class="sc">'+scale().map(function(n){return '<button data-c="'+esc(c)+'" data-n="'+n+'" class="'+(d[c]===n?'on':'')+'">'+n+'</button>'}).join('')+'</div></div>'}).join('')+
-   '<div class="crit"><b>Comments (optional)</b><textarea id="nt" rows="3" placeholder="Strengths, concerns, position notes…">'+esc(nd[dk])+'</textarea></div><div class="mut">1 = needs work · '+Math.ceil(SM/2)+' = solid · '+SM+' = standout</div><button class="pri" id="sv" style="width:100%;margin-top:10px"'+(C.every(function(c){return d[c]})?'':' disabled')+'>'+(m?'Update my score':'Save my score')+'</button></div>';
+   '<div class="crit"><b>Comments (optional)</b><textarea id="nt" rows="3" maxlength="10000" placeholder="Strengths, concerns, position notes…">'+esc(nd[dk])+'</textarea></div><div class="mut">1 = needs work · '+Math.ceil(SM/2)+' = solid · '+SM+' = standout</div><button class="pri" id="sv" style="width:100%;margin-top:10px"'+(C.every(function(c){return d[c]})?'':' disabled')+'>'+(m?'Update my score':'Save my score')+'</button></div>';
   $('v').innerHTML=h;bindSel(false);
   $('nt').oninput=function(e){nd[dk]=e.target.value};
   $('ps').onchange=function(e){sel=e.target.value;render()};
   Array.prototype.forEach.call(document.querySelectorAll('.sc button'),function(b){b.onclick=function(){d[b.dataset.c]=+b.dataset.n;render()}});
   $('sv').onclick=function(){
     var b=$('sv');b.disabled=true;var pid=sel,dy=day,key=dk;
-    setDoc((m?doc(fs,'tryouts',code,'scores',m.id):doc(collection(fs,'tryouts',code,'scores'))),{player:pid,by:myId,who:myName,d:dy,v:Object.assign({},d),mx:SM,note:(nd[key]||'').trim(),t:Date.now()}).then(function(){
+    setDoc((m?doc(fs,'tryouts',code,'scores',m.id):doc(fs,'tryouts',code,'scores',myId+'_'+pid+'_'+encodeURIComponent(dy))),{player:pid,by:myId,who:myName,d:dy,v:Object.assign({},d),mx:SM,note:(nd[key]||'').trim(),t:Date.now()}).then(function(){
       b.textContent='Saved ✓';delete draft[key];delete nd[key];
       setTimeout(function(){var ps=sortP();var i=ps.findIndex(function(p){return p.id===pid});var nx=ps.slice(i+1).concat(ps.slice(0,i)).find(function(p){return !mine(p.id)&&p.id!==pid});if(nx)sel=nx.id;render()},500)
     }).catch(function(){b.disabled=false;b.textContent='Could not save — retry'});
@@ -225,14 +250,17 @@ function renderScore(){
 }
 
 function renderSetup(){
+  if(!isOrganizer()){tab=1;render();return}
   if(!setupDraft||setupDraft.group!==grp)setupDraft={group:grp,items:C.length?C.map(function(c){return {name:c,original:c,weight:W[c]}}):Array.from({length:4},function(){return {name:'',original:null,weight:25}}),max:SM,display:playerDisplay};
   var sd=setupDraft;
-  var h='<div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+'<div class="card"><b>Evaluation setup · '+esc(grp)+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
+  var h='<div class="card"><b>'+esc(eventName||code)+'</b><div class="mut">Event code: <strong>'+esc(code)+'</strong> · Organizer only</div><button id="copyCode" style="margin-top:10px">Copy event code</button><button id="renameEvent" style="margin-top:10px">Edit event name</button><div class="inlineMessage" id="eventMsg" role="status"></div></div><div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+addPlayersCard()+'<div class="card"><b>Evaluation setup · '+esc(grp)+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
   sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" placeholder="update measurement category" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
   h+='<div class="row" style="margin-top:14px"><button id="ca"'+(sd.items.length>=MAX_C?' disabled':'')+'>+ Category</button><span class="pill" id="wt"></span></div><button id="equal" style="margin-top:10px">Equal weights</button><button class="pri" id="cs" style="width:100%;margin-top:14px">Save setup</button><div class="inlineMessage" id="cm" role="status"></div></div><div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear evaluation scores for this event. Players and setup are kept.</div><button class="danger" id="clearScores">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
   h+='<div class="card player-management"><b>Manage players</b><label for="editPlayerSelect">Player to edit</label><select id="editPlayerSelect"><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button id="editPlayerBtn" disabled>Edit player / number</button><div class="mut" style="margin-top:18px">Remove an accidentally added player from any group. Their evaluations and comments will also be permanently deleted.</div><label for="removePlayerSelect">Player to remove</label><select id="removePlayerSelect"'+(removingPlayer?' disabled':'')+'><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(G(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button class="danger" id="removePlayerBtn" disabled>'+(removingPlayer?'Removing…':'Remove player')+'</button><div class="inlineMessage" id="removePlayerMsg" role="status"></div></div>';
   $('v').innerHTML=h;
   bindAdd();bindSel(false);
+  $('copyCode').onclick=async function(){try{await navigator.clipboard.writeText(code);$('eventMsg').textContent='Event code copied ✓'}catch(e){$('eventMsg').textContent='Event code: '+code}};
+  $('renameEvent').onclick=async function(){var n=prompt('Event name',eventName||code);if(n===null)return;n=n.trim();if(!n||n.length>100){$('eventMsg').textContent='Enter a name of 1–100 characters.';return}try{await setDoc(eventRef(),{eventName:n},{merge:true})}catch(e){$('eventMsg').textContent='Could not save the event name.'}};
   $('editPlayerSelect').onchange=function(){$('editPlayerBtn').disabled=!this.value};
   $('editPlayerBtn').onclick=function(){editPlayer($('editPlayerSelect').value)};
   $('removePlayerSelect').onchange=function(){$('removePlayerBtn').disabled=removingPlayer||!this.value};
@@ -316,17 +344,26 @@ function renderBoard(){
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='pathway-evals-'+slug(grp)+(bday==='all'?'-all-sessions':'-'+slug(bday))+'.csv';a.click();
   };
 }
-function start(c,n){
-  code=c;myName=n;myId=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'eval';
-  ls('tc',c);ls('tn',n);
-  unsubs.forEach(function(u){u()});unsubs=[];players=[];scores=[];draft={};nd={};setupDraft=null;groupSetups={};activeSetupSignature='';
-  var bad=function(){code=null;myId=null;ls('tc','');renderLogin();$('le').textContent='That event code was not accepted. Check it and try again.'};
-  unsubs.push(onSnapshot(eventRef(),function(s){var z=s.exists()?s.data():{};xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};legacySetup={criteria:cleanCriteria(z.criteria),weights:z.weights,categorySources:z.categorySources||{}};groupSetups=z.groupSetups&&typeof z.groupSetups==='object'?z.groupSetups:{};playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
-  unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
-  unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
+async function start(c,n,requireOwner){
+  await auth.authStateReady();
+  if(!auth.currentUser)await signInAnonymously(auth);
+  var ref=doc(fs,'tryouts',c),snapshot=await getDoc(ref);
+  if(!snapshot.exists()){if($('le'))$('le').textContent='Event not found. Check the code with your organizer.';return}
+  var z=snapshot.data(),owned=!auth.currentUser.isAnonymous&&z.ownerUid===auth.currentUser.uid;
+  if(requireOwner&&!owned)throw new Error('not-owner');
+  stopEvent();var attempt=connectionId;
+  code=c;myName=n;myId=auth.currentUser.uid;organizer=owned;eventName=z.eventName||c;
+  tab=requireOwner?3:1;ls('tc',c);ls('tn',n);groupSetups={};activeSetupSignature='';
+  function bad(){if(attempt!==connectionId)return;stopEvent();renderLogin();$('le').textContent='Could not access this event. Check the code, connection, and Firebase setup.'}
+  unsubs.push(onSnapshot(ref,function(s){if(attempt!==connectionId)return;if(!s.exists()){bad();return}var z=s.data();organizer=!auth.currentUser.isAnonymous&&z.ownerUid===auth.currentUser.uid;eventName=z.eventName||c;xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};legacySetup={criteria:cleanCriteria(z.criteria),weights:z.weights,categorySources:z.categorySources||{}};groupSetups=z.groupSetups&&typeof z.groupSetups==='object'?z.groupSetups:{};playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
+  unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){if(attempt!==connectionId)return;players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
+  unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){if(attempt!==connectionId)return;scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   render();
 }
-$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t3').onclick=function(){tab=3;setupDraft=null;render()};
-if(true){fs=getFirestore(initializeApp(firebaseConfig))}
-render();
+$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t3').onclick=function(){if(isOrganizer()){tab=3;setupDraft=null;render()}};
+$('leaveEvent').onclick=function(){stopEvent();renderLogin()};
+$('signOutBtn').onclick=async function(){stopEvent();await signOut(auth);renderLogin()};
+var app=initializeApp(firebaseConfig);fs=getFirestore(app);auth=getAuth(app);
+onAuthStateChanged(auth,function(user){if(myId&&(!user||user.uid!==myId)){stopEvent();renderLogin()}});
+auth.authStateReady().then(render).catch(function(){$('v').innerHTML='<div class="card">Could not initialize sign-in. Reload the app.</div>'});
 </script></body></html>
