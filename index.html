@@ -35,11 +35,11 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 @media(max-width:400px){.brand{padding:16px 14px;gap:9px}.brand h1{font-size:24px}.brand .tagline{font-size:10px;letter-spacing:.7px}}
 @media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
 
-dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;border:1px solid var(--bd);border-radius:18px;padding:22px;color:var(--tx);background:var(--card)}dialog::backdrop{background:#0c2139aa}dialog h2{font-size:20px;margin:0 0 12px}input[type=checkbox]{width:22px;min-height:22px;margin:0;accent-color:var(--ac)}[hidden]{display:none!important}.shareActions{display:flex;flex-wrap:wrap;gap:10px}.shareButton{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-weight:600;text-decoration:none} </style></head><body><main>
+dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;border:1px solid var(--bd);border-radius:18px;padding:22px;color:var(--tx);background:var(--card)}dialog::backdrop{background:#0c2139aa}dialog h2{font-size:20px;margin:0 0 12px}input[type=checkbox]{width:22px;min-height:22px;margin:0;accent-color:var(--ac)}[hidden]{display:none!important}.shareActions{display:flex;flex-wrap:wrap;gap:10px}.shareButton{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-weight:600;text-decoration:none} .tabs{flex-wrap:wrap}.tabs button{flex:1 1 150px} </style></head><body><main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
-<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.3</footer>
+<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Score</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.4</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -177,14 +177,14 @@ async function renameGroup(old,name){
 
 function render(){
   if(!myId){renderLogin();return}
-  if(tab===3&&!isOrganizer())tab=1;
+  if((tab===3||tab===4)&&!isOrganizer())tab=1;
   fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
-  $('accountBar').style.display='flex';$('t3').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
-  $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';
+  $('accountBar').style.display='flex';$('t3').hidden=!isOrganizer();$('t4').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
+  $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
   var m=gp().filter(function(p){return mine(p.id)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   $('sub').textContent=(isOrganizer()?'Organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · you scored '+m+' of '+gp().length+' on '+day:'');
-  tab==1?renderScore():tab==2?renderBoard():renderSetup();
+  tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
 }
 function renderLogin(){
   $('tabs').style.display='none';$('accountBar').style.display='none';$('progress').hidden=true;$('sub').textContent='';
@@ -253,19 +253,19 @@ function csvImportCard(){
 function bindRosterImport(){
   $('rosterTemplate').onclick=function(){var blob=new Blob(['Last Name,First Name,Tryout #,Playing Level,Position\r\nSmith,Alex,12,10U,Forward\r\nLee,Jordan,27,12U,Goalie\r\n'],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='players-template.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)};
   $('rosterFile').onchange=async function(){
-    var file=this.files[0],event=code,state=rosterImport;if(!file)return;state.rows=[];state.errors=[];state.message='';state.loading=true;renderSetup();
-    try{if(file.size>2*1024*1024)throw new Error('Choose a CSV smaller than 2 MB.');var result=validateRosterCSV(await file.text());if(code!==event||rosterImport!==state)return;state.rows=result.rows;state.errors=result.errors;state.message='Preview ready. Check the roster before importing.'}catch(e){if(rosterImport===state)state.message=e.message}finally{state.loading=false;if(code===event&&rosterImport===state&&tab===3&&isOrganizer())renderSetup()}
+    if(!isOrganizer())return;var file=this.files[0],event=code,state=rosterImport;if(!file)return;state.rows=[];state.errors=[];state.message='';state.loading=true;renderRosterManagement();
+    try{if(file.size>2*1024*1024)throw new Error('Choose a CSV smaller than 2 MB.');var result=validateRosterCSV(await file.text());if(code!==event||rosterImport!==state)return;state.rows=result.rows;state.errors=result.errors;state.message='Preview ready. Check the roster before importing.'}catch(e){if(rosterImport===state)state.message=e.message}finally{state.loading=false;if(code===event&&rosterImport===state&&tab===4&&isOrganizer())renderRosterManagement()}
   };
   if($('importRoster'))$('importRoster').onclick=async function(){
     if(!isOrganizer()||rosterImport.busy||rosterImport.errors.length)return;
     var pending=rosterImportPlan();if(!pending.length)return;
-    var event=code,state=rosterImport;state.busy=true;state.message='';renderSetup();
+    var event=code,state=rosterImport;state.busy=true;state.message='';renderRosterManagement();
     try{
       var batch=writeBatch(fs),added=[];
       pending.forEach(function(p){var ref=doc(collection(fs,'tryouts',event,'players'));batch.set(ref,p);added.push(Object.assign({id:ref.id},p))});
       await batch.commit();
       if(code===event&&rosterImport===state){added.forEach(function(p){if(!players.some(function(x){return x.id===p.id}))players.push(p)});state.rows=[];state.message=pending.length+' players imported as Unassigned ✓'}
-    }catch(e){if(rosterImport===state)state.message='Import failed. Check your connection and organizer permissions, then try again.'}finally{state.busy=false;if(code===event&&rosterImport===state&&tab===3&&isOrganizer())renderSetup()}
+    }catch(e){if(rosterImport===state)state.message='Import failed. Check your connection and organizer permissions, then try again.'}finally{state.busy=false;if(code===event&&rosterImport===state&&tab===4&&isOrganizer())renderRosterManagement()}
   };
 }
 
@@ -301,24 +301,13 @@ function renderSetup(){
   if(!isOrganizer()){tab=1;render();return}
   if(!setupDraft||setupDraft.group!==grp)setupDraft={group:grp,items:C.length?C.map(function(c){return {name:c,original:c,weight:W[c]}}):Array.from({length:4},function(){return {name:'',original:null,weight:25}}),max:SM,display:playerDisplay};
   var sd=setupDraft;
-  var h='<div class="card"><b>'+esc(eventName||code)+'</b><div class="mut">Event code: <strong>'+esc(code)+'</strong> · Organizer only</div><button id="shareEvent" class="pri" style="margin-top:10px">Share event</button><button id="copyCode" style="margin-top:10px">Copy event code</button><button id="renameEvent" style="margin-top:10px">Edit event name</button><div class="inlineMessage" id="eventMsg" role="status"></div></div><div class="card"><b>Event &amp; roster</b><div class="mut">Prepare groups, sessions, and players here before evaluators begin scoring.</div></div>'+selCard(false,true)+sessionWeightsCard()+addPlayersCard()+csvImportCard()+assignmentCard()+'<div class="card"><b>Evaluation setup · '+esc(grp||'No group selected')+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
+  var h='<div class="card"><b>'+esc(eventName||code)+'</b><div class="mut">Event code: <strong>'+esc(code)+'</strong> · Organizer only</div><button id="shareEvent" class="pri" style="margin-top:10px">Share event</button><button id="copyCode" style="margin-top:10px">Copy event code</button><button id="renameEvent" style="margin-top:10px">Edit event name</button><div class="inlineMessage" id="eventMsg" role="status"></div></div><div class="card"><b>Event settings</b><div class="mut">Set up groups, sessions, and scoring here. Add and assign players in Roster Management.</div></div>'+selCard(false,true)+sessionWeightsCard()+'<div class="card"><b>Evaluation setup · '+esc(grp||'No group selected')+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
   sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" placeholder="update measurement category" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
   h+='<div class="row" style="margin-top:14px"><button id="ca"'+(sd.items.length>=MAX_C?' disabled':'')+'>+ Category</button><span class="pill" id="wt"></span></div><button id="equal" style="margin-top:10px">Equal weights</button><button class="pri" id="cs" style="width:100%;margin-top:14px">Save setup</button><div class="inlineMessage" id="cm" role="status"></div></div><div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear evaluation scores for this event. Players and setup are kept.</div><button class="danger" id="clearScores">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
-  h+='<div class="card player-management"><b>Manage players</b><label for="editPlayerSelect">Player to edit</label><select id="editPlayerSelect"><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(groupLabel(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button id="editPlayerBtn" disabled>Edit player / number</button><div class="mut" style="margin-top:18px">Remove an accidentally added player from any group. Their evaluations and comments will also be permanently deleted.</div><label for="removePlayerSelect">Player to remove</label><select id="removePlayerSelect"'+(removingPlayer?' disabled':'')+'><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(groupLabel(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button class="danger" id="removePlayerBtn" disabled>'+(removingPlayer?'Removing…':'Remove player')+'</button><div class="inlineMessage" id="removePlayerMsg" role="status"></div></div>';
   $('v').innerHTML=h;
-  bindAdd();bindSel(false);bindRosterImport();bindAssignment();bindSessionWeights();$('shareEvent').onclick=shareEventDialog;if(!grp){$('cs').disabled=true;$('cm').textContent='Create a group before saving evaluation setup.'}
+  bindSel(false);bindSessionWeights();$('shareEvent').onclick=shareEventDialog;if(!grp){$('cs').disabled=true;$('cm').textContent='Create a group before saving evaluation setup.'}
   $('copyCode').onclick=async function(){try{await navigator.clipboard.writeText(code);$('eventMsg').textContent='Event code copied ✓'}catch(e){$('eventMsg').textContent='Event code: '+code}};
   $('renameEvent').onclick=async function(){var n=prompt('Event name',eventName||code);if(n===null)return;n=n.trim();if(!n||n.length>100){$('eventMsg').textContent='Enter a name of 1–100 characters.';return}try{await setDoc(eventRef(),{eventName:n},{merge:true})}catch(e){$('eventMsg').textContent='Could not save the event name.'}};
-  $('editPlayerSelect').onchange=function(){$('editPlayerBtn').disabled=!this.value};
-  $('editPlayerBtn').onclick=function(){editPlayer($('editPlayerSelect').value)};
-  $('removePlayerSelect').onchange=function(){$('removePlayerBtn').disabled=removingPlayer||!this.value};
-  $('removePlayerBtn').onclick=async function(){
-    var id=$('removePlayerSelect').value,p=players.find(function(p){return p.id===id});if(!p||removingPlayer)return;
-    var count=scores.filter(function(s){return s.player===id}).length;
-    if(!confirm('Permanently remove '+playerText(p)+' from '+G(p)+' and delete '+count+' evaluation(s) and their comments? This cannot be undone.'))return;
-    removingPlayer=true;$('removePlayerBtn').disabled=true;$('removePlayerSelect').disabled=true;$('removePlayerBtn').textContent='Removing…';
-    try{await removePlayerData(id);players=players.filter(function(p){return p.id!==id});scores=scores.filter(function(s){return s.player!==id});Object.keys(draft).forEach(function(k){if(k.startsWith(id+'|'))delete draft[k]});Object.keys(nd).forEach(function(k){if(k.startsWith(id+'|'))delete nd[k]});if(sel===id)sel=null;if(open===id)open=null;removingPlayer=false;render();if($('removePlayerMsg'))$('removePlayerMsg').textContent='Player removed ✓'}catch(e){removingPlayer=false;render();if($('removePlayerMsg'))$('removePlayerMsg').textContent='Could not complete removal. Check your connection and try again.'}
-  };
   function collect(){document.querySelectorAll('.cn').forEach(function(el,i){sd.items[i].name=el.value});document.querySelectorAll('.cw').forEach(function(el,i){sd.items[i].weight=Number(el.value)});sd.max=+$('sm').value;sd.display=$('pd').value;var t=sd.items.reduce(function(a,c){return a+c.weight},0);$('wt').textContent='Total: '+t+'%';$('wt').className='pill'+(t===100?'':' warn')}
   document.querySelectorAll('.cn,.cw').forEach(function(el){el.oninput=collect});$('sm').onchange=collect;$('pd').onchange=collect;collect();
   function equal(){var w=equalWeights(sd.items.map(function(_,i){return String(i)}));sd.items.forEach(function(c,i){c.weight=w[String(i)]})}
@@ -347,11 +336,13 @@ function renderSetup(){
 }
 // Keep normal removals atomic; larger score histories are cleared in bounded batches.
 async function removePlayerData(id){
+  if(!isOrganizer())throw Error('Organizer access required.');
   var refs=scores.filter(function(s){return s.player===id}).map(function(s){return doc(fs,'tryouts',code,'scores',s.id)});
   while(refs.length>499){var chunk=writeBatch(fs);refs.splice(0,499).forEach(function(ref){chunk.delete(ref)});await chunk.commit()}
   var batch=writeBatch(fs);refs.forEach(function(ref){batch.delete(ref)});batch.delete(doc(fs,'tryouts',code,'players',id));await batch.commit();
 }
 function editPlayer(id){
+  if(!isOrganizer())return;
   var p=players.find(function(p){return p.id===id});if(!p)return;
   var num=prompt('Player number',p.num);if(num===null)return;num=num.trim();
   if(!/^\d+$/.test(num)){alert('Enter a player number using digits only.');return}
@@ -364,6 +355,7 @@ function editPlayer(id){
 function bindAdd(){
   var a=$('pa');if(!a)return;if(!grp){a.disabled=true;$('addMsg').textContent='Create a group to add players manually, or import an unassigned roster below.';return}
   a.onclick=async function(){
+    if(!isOrganizer())return;
     var g=grp,nums=[],invalid=false;
     $('pu').value.split(',').forEach(function(t){t=t.trim();var m=t.match(/^(\d+)\s*-\s*(\d+)$/);if(m){if(+m[2]<+m[1]||+m[2]-+m[1]>=300){invalid=true;return}for(var i=+m[1];i<=+m[2];i++)nums.push(String(i))}else if(/^\d+$/.test(t))nums.push(t);else invalid=true});
     var name=$('pn')?$('pn').value.trim():'';
@@ -437,7 +429,31 @@ function eventShareURL(){var url=new URL(location.href);if(!['http:','https:'].i
 function eventShareText(url){return 'Join '+(eventName||'our event')+' on Pathway Evals.\n\n'+url+'\n\nEvent code: '+code+'\nChoose Join as evaluator, enter your name or initials, and tap Join event.'}
 function shareEventDialog(){if(!isOrganizer())return;var url;try{url=eventShareURL()}catch(e){$('eventMsg').textContent=e.message;return}var text=eventShareText(url),subject='Evaluate '+(eventName||code)+' with Pathway Evals',el=managementDialog('Share event','<p class="mut">Send this link to evaluators. The event code is filled in automatically; they enter their name or initials to join. Sharing does not grant organizer access.</p><label for="shareEventLink">Event link</label><input id="shareEventLink" readonly value="'+esc(url)+'"><p>Event code: <strong>'+esc(code)+'</strong></p><div class="shareActions"><a class="shareButton" id="shareEmail">Email</a><a class="shareButton" id="shareText">Text message</a><button id="shareCopy">Copy link</button>'+(navigator.share?'<button id="shareNative" class="pri">More sharing options</button>':'')+'</div><p id="shareMessage" class="mut" role="status"></p>');$('shareEmail').href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(text);var ios=/iPhone|iPad|iPod/.test(navigator.userAgent);$('shareText').href=(ios?'sms:&body=':'sms:?body=')+encodeURIComponent(text);$('shareCopy').onclick=async function(){try{await navigator.clipboard.writeText(text);$('shareMessage').textContent='Event link and instructions copied ✓'}catch(e){$('shareEventLink').focus();$('shareEventLink').select();$('shareMessage').textContent='Select and copy the event link above.'}};if($('shareNative'))$('shareNative').onclick=async function(){try{await navigator.share({title:subject,text:'Event code: '+code+' · Join as evaluator and enter your name or initials.',url:url})}catch(e){if(e.name!=='AbortError')$('shareMessage').textContent='Choose Email, Text message, or Copy link to share.'}}}
 
-$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t3').onclick=function(){if(isOrganizer()){tab=3;setupDraft=null;render()}};
+
+function managePlayersCard(){
+return '<div class="card player-management"><b>Manage players</b><label for="editPlayerSelect">Player to edit</label><select id="editPlayerSelect"><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(groupLabel(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button id="editPlayerBtn" disabled>Edit player / number</button><div class="mut" style="margin-top:18px">Remove an accidentally added player from any group. Their evaluations and comments will also be permanently deleted.</div><label for="removePlayerSelect">Player to remove</label><select id="removePlayerSelect"'+(removingPlayer?' disabled':'')+'><option value="">Choose a player…</option>'+players.slice().sort(function(a,b){return nat(G(a),G(b))||nat(String(a.num),String(b.num))}).map(function(p){return '<option value="'+esc(p.id)+'">'+esc(groupLabel(p))+' · '+lab(p)+'</option>'}).join('')+'</select><button class="danger" id="removePlayerBtn" disabled>'+(removingPlayer?'Removing…':'Remove player')+'</button><div class="inlineMessage" id="removePlayerMsg" role="status"></div></div>';
+}
+function bindManagePlayers(){
+  $('editPlayerSelect').onchange=function(){$('editPlayerBtn').disabled=!this.value};
+  $('editPlayerBtn').onclick=function(){editPlayer($('editPlayerSelect').value)};
+  $('removePlayerSelect').onchange=function(){$('removePlayerBtn').disabled=removingPlayer||!this.value};
+  $('removePlayerBtn').onclick=async function(){
+    if(!isOrganizer())return;var id=$('removePlayerSelect').value,p=players.find(function(p){return p.id===id});if(!p||removingPlayer)return;
+    var count=scores.filter(function(s){return s.player===id}).length;
+    if(!confirm('Permanently remove '+playerText(p)+' from '+G(p)+' and delete '+count+' evaluation(s) and their comments? This cannot be undone.'))return;
+    removingPlayer=true;$('removePlayerBtn').disabled=true;$('removePlayerSelect').disabled=true;$('removePlayerBtn').textContent='Removing…';
+    try{await removePlayerData(id);players=players.filter(function(p){return p.id!==id});scores=scores.filter(function(s){return s.player!==id});Object.keys(draft).forEach(function(k){if(k.startsWith(id+'|'))delete draft[k]});Object.keys(nd).forEach(function(k){if(k.startsWith(id+'|'))delete nd[k]});if(sel===id)sel=null;if(open===id)open=null;removingPlayer=false;render();if($('removePlayerMsg'))$('removePlayerMsg').textContent='Player removed ✓'}catch(e){removingPlayer=false;render();if($('removePlayerMsg'))$('removePlayerMsg').textContent='Could not complete removal. Check your connection and try again.'}
+  };
+
+}
+function renderRosterManagement(){
+ if(!isOrganizer()){tab=1;render();return}
+ var gl=groups();$('v').innerHTML='<div class="card"><h2 class="intro">Roster Management</h2><p class="mut">Organizer only · Import, assign, edit, and remove players here. Player-name display and privacy rules remain controlled in Settings.</p><label for="rosterGroupSelect">Group for manual player entry</label><select id="rosterGroupSelect">'+(gl.length?'':'<option value="">Create a group in Settings first</option>')+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select></div>'+addPlayersCard()+csvImportCard()+assignmentCard()+managePlayersCard();
+ $('rosterGroupSelect').onchange=function(){grp=this.value;ls('tg',grp);day=null;sel=null;open=null;render()};bindAdd();bindRosterImport();bindAssignment();bindManagePlayers();
+}
+
+$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t4').onclick=function(){if(isOrganizer()){tab=4;render()}};
+$('t3').onclick=function(){if(isOrganizer()){tab=3;setupDraft=null;render()}};
 $('leaveEvent').onclick=function(){stopEvent();renderLogin()};
 $('signOutBtn').onclick=async function(){stopEvent();await signOut(auth);renderLogin()};
 var app=initializeApp(firebaseConfig);fs=getFirestore(app);auth=getAuth(app);
