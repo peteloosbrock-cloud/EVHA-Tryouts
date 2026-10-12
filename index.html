@@ -39,7 +39,43 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 @media(max-width:400px){.brand{padding:16px 14px;gap:9px}.brand h1{font-size:24px}.brand .tagline{font-size:10px;letter-spacing:.7px}}
 @media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
 
-dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;border:1px solid var(--bd);border-radius:18px;padding:22px;color:var(--tx);background:var(--card)}dialog::backdrop{background:#0c2139aa}dialog h2{font-size:20px;margin:0 0 12px}input[type=checkbox]{width:22px;min-height:22px;margin:0;accent-color:var(--ac)}[hidden]{display:none!important}.shareActions{display:flex;flex-wrap:wrap;gap:10px}.shareButton{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-weight:600;text-decoration:none} .tabs{flex-wrap:wrap}.tabs button{flex:1 1 150px} </style></head><body><main>
+dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;border:1px solid var(--bd);border-radius:18px;padding:22px;color:var(--tx);background:var(--card)}dialog::backdrop{background:#0c2139aa}dialog h2{font-size:20px;margin:0 0 12px}input[type=checkbox]{width:22px;min-height:22px;margin:0;accent-color:var(--ac)}[hidden]{display:none!important}.shareActions{display:flex;flex-wrap:wrap;gap:10px}.shareButton{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-weight:600;text-decoration:none} .tabs{flex-wrap:wrap}.tabs button{flex:1 1 150px} 
+/* Opening logo: trace the existing pathway from start to destination. */
+.pathway-splash{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 35%,#153e50 0%,#0c2139 65%);color:#fff;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom));opacity:1;transition:opacity .35s ease;}
+.pathway-splash.leaving{opacity:0;pointer-events:none}.splash-content{text-align:center}.splash-symbol{display:block;width:150px;height:150px;margin:0 auto 20px;overflow:visible}.splash-route{stroke-dasharray:1;stroke-dashoffset:1;animation:trace-path 1.8s cubic-bezier(.35,0,.3,1) .15s forwards}.splash-middle,.splash-end{opacity:0;animation:show-marker .25s ease forwards}.splash-middle{animation-delay:1.05s}.splash-end{animation-delay:1.8s}.splash-name{font-size:32px;font-weight:750;letter-spacing:-1px;line-height:1.25}.splash-name span{color:#24cbbb}.splash-tagline{color:#bbd7dd;font-size:12px;letter-spacing:1px;margin:10px 0 0}
+@keyframes trace-path{to{stroke-dashoffset:0}}@keyframes show-marker{to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.pathway-splash{transition:none}.splash-route{animation:none;stroke-dashoffset:0}.splash-middle,.splash-end{animation:none;opacity:1}}
+</style></head><body><div id="pathwaySplash" class="pathway-splash" role="status" aria-label="Loading Pathway Evals">
+ <div class="splash-content" aria-hidden="true">
+  <svg class="splash-symbol" viewBox="0 0 80 80" fill="none">
+   <path class="splash-route" pathLength="1" d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/>
+   <circle cx="18" cy="62" r="5" fill="white"/>
+   <circle class="splash-middle" cx="42" cy="39" r="4" fill="white"/>
+   <circle class="splash-end" cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/>
+  </svg>
+  <div class="splash-name">Pathway <span>Evals</span></div>
+  <p class="splash-tagline">Evaluate. Develop. Advance.</p>
+ </div>
+</div>
+<script>
+(function(){
+ var splash=document.getElementById('pathwaySplash'),started=performance.now(),done=false;
+ var reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ var minimum=reduced?0:2300;
+ function dismiss(){
+  if(done)return;done=true;
+  var main=document.querySelector('main');if(main)main.inert=false;
+  splash.classList.add('leaving');
+  setTimeout(function(){splash.remove()},reduced?0:350);
+ }
+ window.addEventListener('pathway-ready',function(){setTimeout(dismiss,Math.max(0,minimum-(performance.now()-started)))},{once:true});
+ // Always reveal the app even if a network import or sign-in initialization fails.
+ setTimeout(dismiss,reduced?500:2650);
+ document.addEventListener('DOMContentLoaded',function(){var main=document.querySelector('main');if(main&&!done)main.inert=true},{once:true});
+})();
+</script>
+<noscript><style>.pathway-splash{display:none}</style></noscript>
+<main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
@@ -495,5 +531,5 @@ $('leaveEvent').onclick=function(){stopEvent();renderLogin()};
 $('signOutBtn').onclick=async function(){stopEvent();await signOut(auth);renderLogin()};
 var app=initializeApp(firebaseConfig);fs=getFirestore(app);auth=getAuth(app);
 onAuthStateChanged(auth,function(user){if(myId&&(!user||user.uid!==myId)){stopEvent();renderLogin()}});
-auth.authStateReady().then(render).catch(function(){$('v').innerHTML='<div class="card">Could not initialize sign-in. Reload the app.</div>'});
+auth.authStateReady().then(function(){render();window.dispatchEvent(new Event('pathway-ready'))}).catch(function(){$('v').innerHTML='<div class="card">Could not initialize sign-in. Reload the app.</div>';window.dispatchEvent(new Event('pathway-ready'))});
 </script></body></html>
