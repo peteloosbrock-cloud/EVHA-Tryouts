@@ -61,10 +61,12 @@ const firebaseConfig = {
 // =======================================================================
 
 var auth=null,organizer=false,eventName='',loginMode='evaluator',connectionId=0;
-function isOrganizer(){return organizer&&auth.currentUser&&!auth.currentUser.isAnonymous}
+var eventOwnerUid='',coOrganizerUids=[],removedEvaluatorUids=[],evaluators=[];
+function isOwner(){return !!auth.currentUser&&auth.currentUser.uid===eventOwnerUid}
+function isOrganizer(){return !!organizer&&!!auth.currentUser}
 function normalizeCode(c){return c.trim().toUpperCase()}
 function validCode(c){return /^[A-Z0-9][A-Z0-9-]{3,23}$/.test(c)}
-function stopEvent(){rosterImport={rows:[],errors:[],message:"",busy:false,loading:false};connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};sessionWeightSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
+function stopEvent(){rosterImport={rows:[],errors:[],message:"",busy:false,loading:false};eventOwnerUid='';coOrganizerUids=[];removedEvaluatorUids=[];evaluators=[];connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};sessionWeightSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
 function authError(e){return e.code==='auth/operation-not-allowed'?'Enable Email/Password and Anonymous sign-in in Firebase first.':e.code==='auth/email-already-in-use'?'This email already has an account. Choose Sign in.':e.code==='auth/weak-password'?'Choose a stronger password (at least 6 characters).':e.code==='permission-denied'?'Access denied. Check the Firebase rules and event ownership.':e.code==='auth/too-many-requests'?'Too many attempts. Please try again later.':'Could not complete this action. Check your details and connection.'}
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
 var playerDisplay='number',categorySources={},setupDraft=null,removingPlayer=false;
@@ -187,7 +189,7 @@ function render(){
   $('accountBar').style.display='flex';$('t3').hidden=!isOrganizer();$('t4').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
   $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
   var m=gp().filter(function(p){return mine(p.id)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
-  $('sub').textContent=(isOrganizer()?'Organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · you scored '+m+' of '+gp().length+' on '+day:'');
+  $('sub').textContent=(isOwner()?'Organizer: ':isOrganizer()?'Co-organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · you scored '+m+' of '+gp().length+' on '+day:'');
   tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
 }
 function renderLogin(){
@@ -308,8 +310,9 @@ function renderSetup(){
   var h='<div class="card"><b>'+esc(eventName||code)+'</b><div class="mut">Event code: <strong>'+esc(code)+'</strong> · Organizer only</div><button id="shareEvent" class="pri" style="margin-top:10px">Share event</button><button id="copyCode" style="margin-top:10px">Copy event code</button><button id="renameEvent" style="margin-top:10px">Edit event name</button><div class="inlineMessage" id="eventMsg" role="status"></div></div><div class="card"><b>Event settings</b><div class="mut">Set up groups, sessions, and scoring here. Add and assign players in Roster Management.</div></div>'+selCard(false,true)+sessionWeightsCard()+'<div class="card"><b>Evaluation setup · '+esc(grp||'No group selected')+'</b><div class="mut">Categories and weights apply only to this group. Customize up to '+MAX_C+' measures. Weights must total 100%.</div><div class="crit"><label for="pd">Player display</label><select id="pd">'+[['number','Number only (private)'],['name','Player name'],['both','Player name + number']].map(function(o){return '<option value="'+o[0]+'"'+(sd.display===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="mut">Applies to every evaluator and CSV export. Number only hides names on the scorecard and leaderboard; names remain stored with the event.</div></div><label for="sm">Score scale</label><select id="sm">'+[5,6,7,8,9,10].map(function(n){return '<option value="'+n+'"'+(sd.max===n?' selected':'')+'>1 – '+n+'</option>'}).join('')+'</select><div class="mut">Score scale applies to every group. Existing scores convert proportionally when the scale changes.</div>';
   sd.items.forEach(function(c,i){h+='<div class="setupRow"><input class="cn" data-i="'+i+'" value="'+esc(c.name)+'" placeholder="Enter Scoring Categories" maxlength="30" aria-label="Category '+(i+1)+' name"><input class="cw" data-i="'+i+'" type="number" min="0" max="100" value="'+c.weight+'" aria-label="Category '+(i+1)+' weight"><span>%</span><div class="setupActions"><button data-up="'+i+'"'+(!i?' disabled':'')+' aria-label="Move category up">↑</button><button data-down="'+i+'"'+(i===sd.items.length-1?' disabled':'')+' aria-label="Move category down">↓</button><button data-del="'+i+'"'+(sd.items.length===1?' disabled':'')+'>Remove</button></div></div>'});
   h+='<div class="row" style="margin-top:14px"><button id="ca"'+(sd.items.length>=MAX_C?' disabled':'')+'>+ Category</button><span class="pill" id="wt"></span></div><button id="equal" style="margin-top:10px">Equal weights</button><button class="pri" id="cs" style="width:100%;margin-top:14px">Save setup</button><div class="inlineMessage" id="cm" role="status"></div></div><div class="card"><b>Score data</b><div class="mut" style="margin:4px 0 10px">Clear evaluation scores for this event. Players and setup are kept.</div><button class="danger" id="clearScores">Clear scores</button><div class="mut" id="clearMsg" style="margin-top:8px"></div></div>';
+  h+=evaluatorCard();
   $('v').innerHTML=h;
-  bindSel(false);bindSessionWeights();$('shareEvent').onclick=shareEventDialog;if(!grp){$('cs').disabled=true;$('cm').textContent='Create a group before saving evaluation setup.'}
+  bindEvaluators();bindSel(false);bindSessionWeights();$('shareEvent').onclick=shareEventDialog;if(!grp){$('cs').disabled=true;$('cm').textContent='Create a group before saving evaluation setup.'}
   $('copyCode').onclick=async function(){try{await navigator.clipboard.writeText(code);$('eventMsg').textContent='Event code copied ✓'}catch(e){$('eventMsg').textContent='Event code: '+code}};
   $('renameEvent').onclick=async function(){var n=prompt('Event name',eventName||code);if(n===null)return;n=n.trim();if(!n||n.length>100){$('eventMsg').textContent='Enter a name of 1–100 characters.';return}try{await setDoc(eventRef(),{eventName:n},{merge:true})}catch(e){$('eventMsg').textContent='Could not save the event name.'}};
   function collect(){document.querySelectorAll('.cn').forEach(function(el,i){sd.items[i].name=el.value});document.querySelectorAll('.cw').forEach(function(el,i){sd.items[i].weight=Number(el.value)});sd.max=+$('sm').value;sd.display=$('pd').value;var t=sd.items.reduce(function(a,c){return a+c.weight},0);$('wt').textContent='Total: '+t+'%';$('wt').className='pill'+(t===100?'':' warn')}
@@ -389,20 +392,41 @@ function renderBoard(){
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='pathway-evals-'+slug(grp)+(bday==='all'?'-all-sessions':'-'+slug(bday))+'.csv';a.click();
   };
 }
+function evaluatorRows(){
+ var rows=new Map(evaluators.map(function(e){return [e.id,Object.assign({},e)]}));
+ scores.forEach(function(s){if(!rows.has(s.by))rows.set(s.by,{id:s.by,name:s.who||'Unnamed evaluator'})});
+ if(eventOwnerUid&&!rows.has(eventOwnerUid))rows.set(eventOwnerUid,{id:eventOwnerUid,name:'Event organizer'});
+ return Array.from(rows.values()).sort(function(a,b){return nat(a.name||'',b.name||'')});
+}
+function evaluatorCard(){
+ var rows=evaluatorRows();return '<div class="card"><h2>Evaluators &amp; organizers</h2><p class="mut">'+rows.length+' participants · Only the event owner can change roles or access. Co-organizers can manage event settings and rosters.</p><p class="mut">Removing access keeps existing scores in the results. Restore access to let the evaluator return. Names identify browsers, so the same person may appear twice.</p>'+rows.map(function(e,i){var owner=e.id===eventOwnerUid,removed=removedEvaluatorUids.includes(e.id),co=coOrganizerUids.includes(e.id),count=scores.filter(function(s){return s.by===e.id}).length;return '<div style="border-top:1px solid var(--bd);padding:14px 0"><b>'+esc(e.name||'Unnamed evaluator')+'</b> <span class="pill">'+(owner?'Organizer':removed?'Removed':co?'Co-organizer':'Evaluator')+'</span><div class="mut">'+count+' saved evaluations'+(e.lastJoinedAt?' · Last joined '+esc(new Date(e.lastJoinedAt).toLocaleString()):' · Joined before participant tracking')+'</div>'+(isOwner()&&!owner?'<div class="row" style="margin-top:8px">'+(!removed?'<button data-eval-role="'+i+'">'+(co?'Make evaluator':'Make co-organizer')+'</button>':'')+'<button data-eval-access="'+i+'" class="'+(removed?'':'danger')+'">'+(removed?'Restore access':'Remove evaluator')+'</button></div>':'')+'</div>'}).join('')+'<div id="evaluatorMsg" class="inlineMessage" role="status"></div></div>';
+}
+function bindEvaluators(){
+ document.querySelectorAll('[data-eval-role],[data-eval-access]').forEach(function(b){b.onclick=async function(){
+ if(!isOwner())return;var role=b.dataset.evalRole!==undefined,rows=evaluatorRows(),e=rows[+(role?b.dataset.evalRole:b.dataset.evalAccess)];if(!e||e.id===eventOwnerUid)return;
+ var remove=!removedEvaluatorUids.includes(e.id),promote=!coOrganizerUids.includes(e.id),action=role?(promote?'Make '+e.name+' a co-organizer with access to settings, rosters, and score clearing?':'Return '+e.name+' to evaluator access?'):(remove?'Remove '+e.name+' from this event? Their existing scores stay in results.':'Restore access for '+e.name+'?');if(!confirm(action))return;
+ b.disabled=true;var ref=eventRef(),uid=e.id,actor=myId,activeCode=code;
+ try{await runTransaction(fs,async function(tx){var snap=await tx.get(ref),data=snap.data();if(!data||data.ownerUid!==actor||uid===data.ownerUid)throw Error('permission-denied');var co=Array.isArray(data.coOrganizerUids)?data.coOrganizerUids:[],removed=Array.isArray(data.removedEvaluatorUids)?data.removedEvaluatorUids:[];if(role){if(removed.includes(uid))throw Error('removed');co=co.includes(uid)?co.filter(function(x){return x!==uid}):co.concat(uid)}else{removed=removed.includes(uid)?removed.filter(function(x){return x!==uid}):removed.concat(uid);if(removed.includes(uid))co=co.filter(function(x){return x!==uid})}tx.update(ref,{coOrganizerUids:co,removedEvaluatorUids:removed})});if(code===activeCode&&$('evaluatorMsg'))$('evaluatorMsg').textContent='Participant updated ✓'}catch(err){if(code===activeCode&&$('evaluatorMsg'))$('evaluatorMsg').textContent='Could not update access. Check Firebase rules and retry.';b.disabled=false}
+ }});
+}
+
 async function start(c,n,requireOwner){
   await auth.authStateReady();
   if(!auth.currentUser)await signInAnonymously(auth);
   var ref=doc(fs,'tryouts',c),snapshot=await getDoc(ref);
   if(!snapshot.exists()){if($('le'))$('le').textContent='Event not found. Check the code with your organizer.';return}
-  var z=snapshot.data(),owned=!auth.currentUser.isAnonymous&&z.ownerUid===auth.currentUser.uid;
-  if(requireOwner&&!owned)throw new Error('not-owner');
+  var z=snapshot.data(),owned=z.ownerUid===auth.currentUser.uid,co=(z.coOrganizerUids||[]).includes(auth.currentUser.uid);
+  if((z.removedEvaluatorUids||[]).includes(auth.currentUser.uid))throw Error('permission-denied');
+  if(requireOwner&&!owned&&!co)throw new Error('not-owner');
   stopEvent();var attempt=connectionId;
-  code=c;myName=n;myId=auth.currentUser.uid;organizer=owned;eventName=z.eventName||c;
+  code=c;myName=n;myId=auth.currentUser.uid;eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];organizer=owned||co;eventName=z.eventName||c;
+  try{await setDoc(doc(fs,'tryouts',c,'evaluators',myId),{name:n,lastJoinedAt:Date.now()},{merge:true})}catch(e){stopEvent();throw e}
   tab=requireOwner?3:1;ls('tc',c);ls('tn',n);groupSetups={};activeSetupSignature='';
   function bad(){if(attempt!==connectionId)return;stopEvent();renderLogin();$('le').textContent='Could not access this event. Check the code, connection, and Firebase setup.'}
-  unsubs.push(onSnapshot(ref,function(s){if(attempt!==connectionId)return;if(!s.exists()){bad();return}var z=s.data();organizer=!auth.currentUser.isAnonymous&&z.ownerUid===auth.currentUser.uid;eventName=z.eventName||c;xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};sessionWeightSetups=z.sessionWeightSetups&&typeof z.sessionWeightSetups==='object'?z.sessionWeightSetups:{};legacySetup={criteria:cleanCriteria(z.criteria),weights:z.weights,categorySources:z.categorySources||{}};groupSetups=z.groupSetups&&typeof z.groupSetups==='object'?z.groupSetups:{};playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
+  unsubs.push(onSnapshot(ref,function(s){if(attempt!==connectionId)return;if(!s.exists()){bad();return}var z=s.data();eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];if(removedEvaluatorUids.includes(myId)){bad();return}organizer=isOwner()||coOrganizerUids.includes(myId);eventName=z.eventName||c;xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};sessionWeightSetups=z.sessionWeightSetups&&typeof z.sessionWeightSetups==='object'?z.sessionWeightSetups:{};legacySetup={criteria:cleanCriteria(z.criteria),weights:z.weights,categorySources:z.categorySources||{}};groupSetups=z.groupSetups&&typeof z.groupSetups==='object'?z.groupSetups:{};playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){if(attempt!==connectionId)return;players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){if(attempt!==connectionId)return;scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
+  unsubs.push(onSnapshot(collection(fs,'tryouts',code,'evaluators'),function(s){if(attempt!==connectionId)return;evaluators=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});if(tab===3)renderSetup()},bad));
   render();
 }
 
