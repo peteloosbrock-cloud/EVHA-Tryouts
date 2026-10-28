@@ -236,7 +236,7 @@ function renderLogin(){
   $('tabs').style.display='none';$('accountBar').style.display='none';$('progress').hidden=true;$('sub').textContent='';
   var signed=auth&&auth.currentUser&&!auth.currentUser.isAnonymous;
   $('v').innerHTML='<div class="card"><h2 class="intro">Welcome to Pathway Evals</h2><div class="row"><button id="evalMode" class="'+(loginMode==='evaluator'?'pri':'')+'">Join as evaluator</button><button id="orgMode" class="'+(loginMode==='organizer'?'pri':'')+'">Organizer</button></div><div id="loginBody" style="margin-top:16px"></div><div class="inlineMessage" id="le" role="status"></div></div>';
-  var cb=document.createElement('button');cb.textContent='In-season assessments';cb.onclick=seasonLogin;$('orgMode').parentElement.appendChild(cb);
+  var cb=document.createElement('button');cb.textContent='In Season';cb.onclick=seasonLogin;$('orgMode').parentElement.appendChild(cb);
   $('evalMode').onclick=function(){loginMode='evaluator';renderLogin()};$('orgMode').onclick=function(){loginMode='organizer';renderLogin()};
   if(loginMode==='evaluator'){
     $('loginBody').innerHTML='<label for="lc">Event code</label><input id="lc" placeholder="Code from your organizer" autocapitalize="characters" maxlength="24"><label for="ln">Your name or initials</label><input id="ln" placeholder="e.g. Coach Mike" maxlength="80"><div class="mut">Use this same browser to return to your saved scores.</div><button class="pri" id="lg" style="width:100%;margin-top:14px">Join event</button>';
