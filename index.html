@@ -122,7 +122,7 @@ function cleanCriteria(a){var out=[];(a||[]).forEach(function(x){x=String(x||'')
 function equalWeights(a){var out={},base=Math.floor(100/a.length),left=100-base*a.length;a.forEach(function(c,i){out[c]=base+(i<left?1:0)});return out}
 function cleanWeights(raw,a){var out={},sum=0;a.forEach(function(c){var n=Number(raw&&raw[c]);if(isFinite(n)&&n>=0){out[c]=n;sum+=n}});return Math.abs(sum-100)<0.001?out:equalWeights(a)}
 function eventRef(){return doc(fs,'tryouts',code)}
-var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,fs=null,code=null,myId=null,myName=null,unsubs=[];
+var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,comparePlayerIds=[],fs=null,code=null,myId=null,myName=null,unsubs=[];
 var grp=ls('tg')||null,day=null,bday='all',xg=[],xd={};
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -168,7 +168,7 @@ function selCard(board,manage){
    '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation session" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All sessions (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Session</button>':'')+'</div>'+(manage?'<button id="ge" style="margin-top:12px">Edit group</button><button id="de" style="margin-top:12px">Edit session</button><div id="groupMsg" class="inlineMessage" role="status"></div><div id="sessionMsg" class="inlineMessage" role="status"></div>':'')+'</div>';
 }
 function bindSel(board){
-  $('gs').onchange=function(e){grp=e.target.value;ls('tg',grp);sel=null;open=null;bday='all';render()};
+  $('gs').onchange=function(e){grp=e.target.value;ls('tg',grp);sel=null;open=null;comparePlayerIds=[];bday='all';render()};
   if($('ga'))$('ga').onclick=async function(){
     var n=(prompt('New group name (e.g. 10U)')||'').trim();if(!n)return;
     if(groups().some(function(g){return g.toLowerCase()===n.toLowerCase()})){alert('That group name already exists.');return}
@@ -424,9 +424,25 @@ function bindAdd(){
   };
 
 }
+function compareDialog(){
+ var roster=sortP(),validIds=new Set(roster.map(function(p){return p.id}));
+ comparePlayerIds=comparePlayerIds.filter(function(id){return validIds.has(id)});
+ var body='<p class="mut">Choose 2–10 players from '+esc(grp||'this group')+'. The comparison uses the current session filter.</p><p id="compareCount" class="mut" role="status"></p><div style="max-height:48dvh;overflow:auto;border:1px solid var(--bd);border-radius:12px;padding:6px 12px">'+roster.map(function(p){return '<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd);margin:0"><input type="checkbox" data-compare-player="'+esc(p.id)+'"'+(comparePlayerIds.includes(p.id)?' checked':'')+'><span>'+lab(p)+'</span></label>'}).join('')+'</div><button id="compareShow" class="pri" style="width:100%;margin-top:14px">Compare players</button>';
+ var el=managementDialog('Compare players',body);
+ function update(){var checks=Array.from(el.querySelectorAll('[data-compare-player]')),chosen=checks.filter(function(x){return x.checked}),count=chosen.length;$('compareCount').textContent=count+' selected · Choose between 2 and 10 players.';checks.forEach(function(x){x.disabled=!x.checked&&count>=10});$('compareShow').disabled=count<2||count>10;comparePlayerIds=chosen.map(function(x){return x.dataset.comparePlayer})}
+ el.querySelectorAll('[data-compare-player]').forEach(function(x){x.onchange=update});update();
+ $('compareShow').onclick=function(){
+   update();if(comparePlayerIds.length<2||comparePlayerIds.length>10)return;
+   var chosen=roster.filter(function(p){return comparePlayerIds.includes(p.id)}),statsById={};chosen.forEach(function(p){statsById[p.id]=stats(p.id)});
+   var context=bday==='all'?sessionWeightDescription():'Average across evaluators for '+bday;
+   var html='<form method="dialog"><div class="row"><h2>Player comparison</h2><button aria-label="Close">✕</button></div></form><p class="mut">'+esc(grp||'Group')+' · '+esc(bday==='all'?'All sessions':bday)+' · Scores use a 1–'+SM+' scale</p><p class="mut">'+esc(context)+'</p><div class="tw" style="max-height:62dvh;overflow:auto"><table><thead><tr><th>Metric</th>'+chosen.map(function(p){return '<th style="text-align:center">'+lab(p)+'</th>'}).join('')+'</tr></thead><tbody><tr><th>Total score</th>'+chosen.map(function(p){var s=statsById[p.id];return '<td class="n big">'+(s.n?f(s.avg):'—')+'</td>'}).join('')+'</tr>'+C.map(function(c,i){return '<tr><th>'+esc(c)+(Number(W[c])?'<br><span class="mut">'+esc(W[c])+'% weight</span>':'')+'</th>'+chosen.map(function(p){var s=statsById[p.id];return '<td class="n">'+(s.n?f(s.per[i]):'—')+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table></div><button id="compareChange" style="margin-top:14px">Change players</button>';
+   el.innerHTML=html;$('compareChange').onclick=function(){el.close();compareDialog()};
+ };
+}
 function renderBoard(){
   var rows=gp().map(function(p){return{p:p,s:stats(p.id)}}).sort(function(a,b){return b.s.avg-a.s.avg});
-  var h=selCard(true)+'<div class="row" style="margin-bottom:8px"><span class="mut">'+(bday==='all'?esc(sessionWeightDescription()):'Average across evaluators for '+esc(bday))+'</span><button id="ex">Export CSV</button></div>';
+  var h=selCard(true)+'<div class="row" style="margin-bottom:8px"><span class="mut">'+(bday==='all'?esc(sessionWeightDescription()):'Average across evaluators for '+esc(bday))+'</span><div style="display:flex;gap:8px;flex-shrink:0"><button id="comparePlayers">Compare players</button><button id="ex">Export CSV</button></div></div>';
+  $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;
   if(!rows.length){$('v').innerHTML=h+'<div class="card mut">No players in '+esc(grp)+' yet.</div>';bindSel(true);$('ex').onclick=function(){};return}
   h+='<div class="card tw"><table><tr><th>#</th><th>Player / number</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Sessions</th>'+C.map(function(c){return '<th class="n">'+esc(shortName(c))+'</th>'}).join('')+'</tr>';
   rows.forEach(function(r,i){
@@ -435,7 +451,7 @@ function renderBoard(){
     if(open===r.p.id)h+='<tr><td></td><td colspan="'+(4+C.length)+'">'+(s.e.slice().sort(function(a,b){return nat(D(a),D(b))}).map(function(e){return '<div class="mut">'+esc(D(e))+' · '+esc(e.who||e.by)+(e.enteredBy&&e.enteredBy!==e.by?' · entered by '+esc(scoreEvaluatorName(e.enteredBy)):'')+': <b>'+f(evalOverall(e))+'</b> ('+C.map(function(c){return Math.round(sv(e,c)*10)/10}).join('/')+')'+(e.note?'<div style="color:var(--tx);white-space:normal;margin:2px 0 8px">“'+esc(e.note)+'”</div>':'')+'</div>'}).join('')||'<div class="mut">No scores yet</div>')+'</td></tr>';
   });
   h+='</table></div><div class="mut">Tap a row to see each evaluator. ⚠ = evaluators differ by '+(Math.round(SM*3)/10)+'+ points overall in the same session.</div>';
-  $('v').innerHTML=h;bindSel(true);
+  $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;
   Array.prototype.forEach.call(document.querySelectorAll('tr.p'),function(t){t.onclick=function(){open=open===t.dataset.id?null:t.dataset.id;render()}});
   $('ex').onclick=function(){
     var q=function(x){return '"'+String(x).replace(/"/g,'""')+'"'};
