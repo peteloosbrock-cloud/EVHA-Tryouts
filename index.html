@@ -46,6 +46,7 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 @keyframes trace-path{to{stroke-dashoffset:0}}@keyframes show-marker{to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.pathway-splash{transition:none}.splash-route{animation:none;stroke-dashoffset:0}.splash-middle,.splash-end{animation:none;opacity:1}}
  #accountBar{gap:8px}#accountBar button{flex:1;min-width:0;padding:10px 5px;font-size:13px} .dashStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:18px}.dashStat{background:var(--bg);border-radius:12px;padding:12px 6px;text-align:center}.dashStat strong{display:block;font-size:23px}.dashStat span{font-size:11px;color:var(--mut)}.dashTrack{height:9px;background:var(--bd);border-radius:10px;overflow:hidden;margin:15px 0}.dashTrack span{display:block;height:100%;background:var(--ac)}.dashTask{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}.dashTask>span:nth-child(2){flex:1;font-size:13px}.dashTask button{min-height:38px;padding:7px 12px}.dashDone{color:var(--ok);font-weight:800}.dashPending{color:var(--mut)}.dashActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}.dashActions button:last-child{grid-column:1/-1}@media(max-width:400px){.dashStats{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{flex-basis:calc(50% - 6px)}}
+.wizardSteps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:14px 0 24px}.wizardSteps button{min-width:0;padding:5px;min-height:42px}.wizardInfo{padding:16px;background:var(--bg);border-radius:12px;font-weight:600;margin:16px 0}.wizardNav{display:flex;justify-content:space-between;gap:10px;margin-top:24px}.wizardReview>div{padding:12px 0;border-bottom:1px solid var(--bd)}
 </style></head><body><div id="pathwaySplash" class="pathway-splash" role="status" aria-label="Loading Pathway Evals">
  <div class="splash-content" aria-hidden="true">
   <svg class="splash-symbol" viewBox="0 0 80 80" fill="none">
@@ -80,7 +81,7 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="t0" hidden>Admin Dashboard</button><button id="signOutBtn">Sign out</button></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.5</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.6</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -103,7 +104,7 @@ function isOwner(){return !!auth.currentUser&&auth.currentUser.uid===eventOwnerU
 function isOrganizer(){return !!organizer&&!!auth.currentUser}
 function normalizeCode(c){return c.trim().toUpperCase()}
 function validCode(c){return /^[A-Z0-9][A-Z0-9-]{3,23}$/.test(c)}
-function stopEvent(){scoringEvaluatorId=null;rosterImport={rows:[],errors:[],message:"",busy:false,loading:false};eventOwnerUid='';coOrganizerUids=[];removedEvaluatorUids=[];evaluators=[];connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};sessionWeightSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
+function stopEvent(){scoringEvaluatorId=null;rosterImport={rows:[],errors:[],message:"",busy:false,loading:false};eventOwnerUid='';coOrganizerUids=[];removedEvaluatorUids=[];evaluators=[];connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};sessionWeightSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;wizardStep=0;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
 function authError(e){return e.code==='auth/operation-not-allowed'?'Enable Email/Password and Anonymous sign-in in Firebase first.':e.code==='auth/email-already-in-use'?'This email already has an account. Choose Sign in.':e.code==='auth/weak-password'?'Choose a stronger password (at least 6 characters).':e.code==='permission-denied'?'Access denied. Check the Firebase rules and event ownership.':e.code==='auth/too-many-requests'?'Too many attempts. Please try again later.':'Could not complete this action. Check your details and connection.'}
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
 var playerDisplay='number',categorySources={},setupDraft=null,removingPlayer=false;
@@ -124,7 +125,7 @@ function equalWeights(a){var out={},base=Math.floor(100/a.length),left=100-base*
 function cleanWeights(raw,a){var out={},sum=0;a.forEach(function(c){var n=Number(raw&&raw[c]);if(isFinite(n)&&n>=0){out[c]=n;sum+=n}});return Math.abs(sum-100)<0.001?out:equalWeights(a)}
 function eventRef(){return doc(fs,'tryouts',code)}
 async function deleteEventCollection(c,name){var ref=collection(fs,'tryouts',c,name);while(true){var snap=await getDocs(ref);if(snap.empty)return;for(var i=0;i<snap.docs.length;i+=450){var batch=writeBatch(fs);snap.docs.slice(i,i+450).forEach(function(d){batch.delete(d.ref)});await batch.commit()}}}
-var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,comparePlayerIds=[],fs=null,code=null,myId=null,myName=null,unsubs=[];
+var wizardStep=0,players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,comparePlayerIds=[],fs=null,code=null,myId=null,myName=null,unsubs=[];
 var grp=ls('tg')||null,day=null,bday='all',xg=[],xd={};
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -223,7 +224,7 @@ async function renameGroup(old,name){
 
 function render(){
   if(!myId){renderLogin();return}
-  if((tab===0||tab===3||tab===4)&&!isOrganizer())tab=1;
+  if((tab===0||tab===5||tab===3||tab===4)&&!isOrganizer())tab=1;
   fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
   document.documentElement.style.setProperty('--score-columns',Math.min(SM,5));
@@ -232,7 +233,7 @@ $('accountBar').style.display='flex';$('t0').hidden=!isOrganizer();$('t3').hidde
   var activeBy=activeScoreEvaluator(),m=gp().filter(function(p){return mine(p.id,activeBy)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   var targetLabel=activeBy===myId?'you':scoreEvaluatorName(activeBy);
   $('sub').textContent=(isOwner()?'Organizer: ':isOrganizer()?'Co-organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · '+targetLabel+' scored '+m+' of '+gp().length+' on '+day:'');
-  tab===0?renderOrganizerDashboard():tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
+  tab===5?renderGuidedSetup():tab===0?renderOrganizerDashboard():tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
 }
 function renderLogin(){
   $('tabs').style.display='none';$('accountBar').style.display='none';$('progress').hidden=true;$('sub').textContent='';
@@ -368,11 +369,39 @@ function renderOrganizerDashboard(){
  var h='<div class="card"><h2 class="intro">Admin Dashboard</h2><p class="mut">Manage '+esc(eventName||code)+' from one place. </p><div class="dashStats">'+[['Players',players.length],['Groups',groupNames.length],['Sessions',sessions],['Scores',scores.length]].map(function(a){return '<div class="dashStat"><strong>'+a[1]+'</strong><span>'+a[0]+'</span></div>'}).join('')+'</div></div>';
  h+='<div class="card"><div class="row"><b>Event readiness</b><span class="pill">'+finished+' of '+complete.length+' complete</span></div><div class="dashTrack"><span style="width:'+percent+'%"></span></div><p class="mut">Use this checklist to finish setup. You can complete the steps in any order.</p>';
  tasks.forEach(function(t,i){h+='<div class="dashTask"><span class="'+(complete[i]?'dashDone':'dashPending')+'">'+(complete[i]?'✓':'○')+'</span><span>'+esc(t[0])+'</span><button data-dash-tab="'+t[1]+'">'+(complete[i]?'Review':'Open')+'</button></div>'});
- h+='</div><div class="card"><b>Quick actions</b><div class="dashActions"><button data-dash-tab="4">Manage players</button><button data-dash-tab="3">Event settings</button><button data-dash-tab="1">Evaluation scoring</button><button data-dash-tab="2">View leaderboard</button><button id="dashShare" class="pri">Share event</button></div></div>';
+ h+='</div><div class="card"><b>Guided setup</b><p class="mut">Follow six steps to prepare your event.</p><button class="pri" id="startWizard">Guided Event Setup</button></div><div class="card"><b>Quick actions</b><div class="dashActions"><button data-dash-tab="4">Manage players</button><button data-dash-tab="3">Event settings</button><button data-dash-tab="1">Evaluation scoring</button><button data-dash-tab="2">View leaderboard</button><button id="dashShare" class="pri">Share event</button></div></div>';
  if(unassigned)h+='<div class="card"><b>Needs attention</b><p class="mut">'+unassigned+' player(s) are not assigned to a group.</p><button data-dash-tab="4">Assign players</button></div>';
  $('v').innerHTML=h;
  document.querySelectorAll('[data-dash-tab]').forEach(function(b){b.onclick=function(){tab=Number(this.dataset.dashTab);if(tab===3)setupDraft=null;render()}});
- $('dashShare').onclick=shareEventDialog;
+ $('dashShare').onclick=shareEventDialog;$('startWizard').onclick=function(){wizardStep=0;tab=5;render()};
+}
+
+function renderGuidedSetup(){
+ if(!isOrganizer()){tab=1;render();return}
+ var gl=groups(),assigned=players.filter(function(p){return !!G(p)}).length;
+ var sessions=gl.reduce(function(n,g){return n+(xd[g]||[]).length},0);
+ var configured=gl.filter(function(g){var c=setupFor(g);return !!(c&&c.criteria&&c.criteria.length)}).length;
+ var evaluatorCount=evaluatorRows().filter(function(e){return e.id!==myId}).length;
+ var steps=[
+  {title:'Event Details',description:'Review the event name and code. Event names can be edited in Settings.',status:!!eventName,detail:'Event: '+(eventName||code)+' · Code: '+code,action:'Edit event details',tab:3},
+  {title:'Players & Groups',description:'Import your roster, then assign each player to an evaluation group.',status:players.length>0&&assigned===players.length,detail:players.length+' players · '+(players.length-assigned)+' unassigned · '+gl.length+' groups',action:'Manage roster and assignments',tab:4},
+  {title:'Scoring Setup',description:'Set scoring scale, categories and category weights for each group.',status:gl.length>0&&configured===gl.length,detail:configured+' of '+gl.length+' groups configured · 1–'+SM+' scoring scale',action:'Configure scoring',tab:3},
+  {title:'Sessions',description:'Create sessions for each group and review session weights.',status:sessions>0,detail:sessions+' sessions across '+gl.length+' groups',action:'Manage sessions and weights',tab:3},
+  {title:'Evaluators',description:'Share the event link. Evaluators join with their name and event code.',status:evaluatorCount>0,detail:evaluatorCount+' evaluator(s) joined',action:'Share event invitation',share:true},
+  {title:'Review & Finish',description:'Review the event readiness before your first evaluation.',status:false,detail:'Your event is ready when the required setup steps are complete.',action:'Return to Admin Dashboard',tab:0}
+ ];
+ var idx=Math.max(0,Math.min(wizardStep,steps.length-1)),item=steps[idx];
+ var h='<div class="card"><div class="row"><b>Guided Event Setup</b><button id="wizardExit">Exit</button></div><p class="mut">Step '+(idx+1)+' of '+steps.length+' · '+esc(eventName||code)+'</p><div class="wizardSteps">'+steps.map(function(x,i){return '<button class="'+(i===idx?'on':'')+'" data-wstep="'+i+'" aria-label="Step '+(i+1)+': '+esc(x.title)+'">'+(i+1)+'</button>'}).join('')+'</div><h2 class="intro">'+esc(item.title)+'</h2><p>'+esc(item.description)+'</p>';
+ if(idx===5){h+='<div class="wizardReview">'+steps.slice(0,5).map(function(x){return '<div><span class="'+(x.status?'dashDone':'dashPending')+'">'+(x.status?'✓':'○')+'</span> '+esc(x.title)+' <span class="mut">'+(x.status?'Ready':'Review needed')+'</span></div>'}).join('')+'</div>'}
+ else h+='<div class="wizardInfo">'+esc(item.detail)+'</div><p class="mut">'+(item.status?'✓ This step appears complete. You can review it or continue.':'Complete this step using the existing event tools, then return to the wizard.')+'</p>';
+ h+='<button id="wizardAction" class="pri">'+esc(item.action)+'</button><div class="wizardNav"><button id="wizardBack"'+(idx===0?' disabled':'')+'>Back</button><button id="wizardNext" class="pri">'+(idx===5?'Finish':'Next step')+'</button></div></div>';
+ h+='<div class="card"><b>How this works</b><p class="mut">Your changes save through the existing Pathway Evals screens. This wizard does not duplicate your event data or change scoring calculations. You can leave and return at any time.</p></div>';
+ $('v').innerHTML=h;
+ document.querySelectorAll('[data-wstep]').forEach(function(b){b.onclick=function(){wizardStep=Number(this.dataset.wstep);render()}});
+ $('wizardExit').onclick=function(){tab=0;render()};
+ $('wizardBack').onclick=function(){wizardStep=Math.max(0,wizardStep-1);render()};
+ $('wizardNext').onclick=function(){if(wizardStep===5){tab=0}else wizardStep++;render()};
+ $('wizardAction').onclick=function(){if(item.share){shareEventDialog();return}tab=item.tab;if(tab===3)setupDraft=null;render()};
 }
 function renderSetup(){
   if(!isOrganizer()){tab=1;render();return}
