@@ -491,7 +491,7 @@ function compareDialog(){
 }
 function renderBoard(){
   var rows=gp().map(function(p){return{p:p,s:stats(p.id)}}).sort(function(a,b){return b.s.avg-a.s.avg});
-  var h=selCard(true)+'<div class="row" style="margin-bottom:8px"><span class="mut">'+(bday==='all'?esc(sessionWeightDescription()):'Average across evaluators for '+esc(bday))+'</span><div style="display:flex;gap:8px;flex-shrink:0"><button id="comparePlayers">Compare players</button><button id="ex">Export CSV</button></div></div>';
+  var h=selCard(true)+'<div class="row" style="margin-bottom:8px;justify-content:flex-end"><div style="display:flex;gap:8px;flex-shrink:0"><button id="comparePlayers">Compare players</button><button id="ex">Export CSV</button></div></div>';
   $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;
   if(!rows.length){$('v').innerHTML=h+'<div class="card mut">No players in '+esc(grp)+' yet.</div>';bindSel(true);$('ex').onclick=function(){};return}
   h+='<div class="card tw"><table><tr><th>#</th><th>Player / number</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Sessions</th>'+C.map(function(c){return '<th class="n">'+esc(shortName(c))+'</th>'}).join('')+'</tr>';
