@@ -39,6 +39,7 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 @media(max-width:400px){.brand{padding:16px 14px;gap:9px}.brand h1{font-size:24px}.brand .tagline{font-size:10px;letter-spacing:.7px}}
 @media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
 
+.board-actions{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin:0 auto 8px}.board-actions button{min-width:150px}
 dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;border:1px solid var(--bd);border-radius:18px;padding:22px;color:var(--tx);background:var(--card)}dialog::backdrop{background:#0c2139aa}dialog h2{font-size:20px;margin:0 0 12px}input[type=checkbox]{width:22px;min-height:22px;margin:0;accent-color:var(--ac)}[hidden]{display:none!important}.shareActions{display:flex;flex-wrap:wrap;gap:10px}.shareButton{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-weight:600;text-decoration:none} .tabs{flex-wrap:wrap}.tabs button{flex:1 1 150px} 
 /* Opening logo: trace the existing pathway from start to destination. */
 .pathway-splash{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 35%,#153e50 0%,#0c2139 65%);color:#fff;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom));opacity:1;transition:opacity .35s ease;}
@@ -77,9 +78,9 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 <noscript><style>.pathway-splash{display:none}</style></noscript>
 <main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
-<div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
-<div class="tabs" id="tabs" style="display:none"><button id="t5">Admin Dashboard</button><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.5</footer>
+<div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="t5">Admin Dashboard</button><button id="signOutBtn">Sign out</button></div>
+<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button></div>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.9</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -226,8 +227,8 @@ function render(){
   fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
   document.documentElement.style.setProperty('--score-columns',Math.min(SM,5));
-  $('accountBar').style.display='flex';$('t5').hidden=!isOrganizer();$('t3').hidden=!isOrganizer();$('t4').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
-  $('t5').className=tab==5?'on':'';$('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
+  $('accountBar').style.display='flex';$('t5').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
+  $('t5').className=tab==5?'on':'';$('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';
   var activeBy=activeScoreEvaluator(),m=gp().filter(function(p){return mine(p.id,activeBy)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   var targetLabel=activeBy===myId?'you':scoreEvaluatorName(activeBy);
   $('sub').textContent=(isOwner()?'Organizer: ':isOrganizer()?'Co-organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · '+targetLabel+' scored '+m+' of '+gp().length+' on '+day:'');
@@ -449,7 +450,7 @@ function compareDialog(){
 }
 function renderBoard(){
   var rows=gp().map(function(p){return{p:p,s:stats(p.id)}}).sort(function(a,b){return b.s.avg-a.s.avg});
-  var h=selCard(true)+'<div class="row" style="margin-bottom:8px"><span class="mut">'+(bday==='all'?esc(sessionWeightDescription()):'Average across evaluators for '+esc(bday))+'</span><div style="display:flex;gap:8px;flex-shrink:0"><button id="comparePlayers">Compare players</button><button id="ex">Export CSV</button></div></div>';
+  var h=selCard(true)+'<div class="board-actions"><button id="comparePlayers">Compare players</button><button id="ex">Export CSV</button></div>';
   $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;
   if(!rows.length){$('v').innerHTML=h+'<div class="card mut">No players in '+esc(grp)+' yet.</div>';bindSel(true);$('ex').onclick=function(){};return}
   h+='<div class="card tw"><table><tr><th>#</th><th>Player / number</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Sessions</th>'+C.map(function(c){return '<th class="n">'+esc(shortName(c))+'</th>'}).join('')+'</tr>';
@@ -565,8 +566,7 @@ function renderRosterManagement(){
 }
 
 $('t5').onclick=function(){if(isOrganizer()){tab=5;render()}};
-$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t4').onclick=function(){if(isOrganizer()){tab=4;render()}};
-$('t3').onclick=function(){if(isOrganizer()){tab=3;setupDraft=null;render()}};
+$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};
 $('leaveEvent').onclick=function(){stopEvent();renderLogin()};
 $('signOutBtn').onclick=async function(){stopEvent();await signOut(auth);renderLogin()};
 
