@@ -35,7 +35,7 @@ input,select,textarea{background:var(--bg);border-color:var(--bd);border-radius:
 /* Brand colors and custom pathway symbol */
 :root{--bg:#e5f8f4;--bd:#cfe7e3;--ac:#087f83}
 body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radial-gradient(ellipse at 100% 42%,#c5eaf7 0,transparent 60%),#e5f8f4;background-attachment:fixed}
-.brand{padding:18px 20px;margin-bottom:18px;background:#0c2139;color:#fff;border-radius:20px;box-shadow:0 8px 24px #0c213914}.brand .mark{width:48px;height:48px;background:#0c2139;box-shadow:none;border-radius:14px}.brand h1 span{color:#24cbbb}.brand .tagline{color:#bbd7dd;font-size:11px;letter-spacing:1px}.tabs{background:#d1eee8}.card{box-shadow:0 5px 24px #0c213906}.danger{color:#b33b45!important}.player-management{margin-top:14px}.player-management label{margin-top:12px}
+.brand{padding:18px 20px;margin-bottom:18px;background:#0c2139;color:#fff;border-radius:20px;box-shadow:0 8px 24px #0c213914}.brand .mark{width:48px;height:48px;background:#0c2139;box-shadow:none;border-radius:14px}.brand h1 span{color:#24cbbb}.brand .tagline{color:#bbd7dd;font-size:11px;letter-spacing:1px}.tabs{background:#d1eee8}.card{box-shadow:0 5px 24px #0c213906}.danger{color:#b33b45!important}.player-management{margin-top:14px}.player-management label{margin-top:12px}.dashboardStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}.dashboardStats>div{display:flex;flex-direction:column;gap:3px;padding:15px;background:var(--bg);border:1px solid var(--bd);border-radius:13px}.dashboardStats strong{font-size:24px;color:var(--ac);line-height:1.1}.dashboardStats span{color:var(--mut);font-size:12px}.dashboardLinks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.dashboardLinks button{width:100%;min-height:54px}
 @media(max-width:400px){.brand{padding:16px 14px;gap:9px}.brand h1{font-size:24px}.brand .tagline{font-size:10px;letter-spacing:.7px}}
 @media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
 
@@ -78,7 +78,7 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 <main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
-<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
+<div class="tabs" id="tabs" style="display:none"><button id="t5">Admin Dashboard</button><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
 <div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.5</footer>
 </main>
 <script type="module">
@@ -222,16 +222,16 @@ async function renameGroup(old,name){
 
 function render(){
   if(!myId){renderLogin();return}
-  if((tab===3||tab===4)&&!isOrganizer())tab=1;
+  if((tab===3||tab===4||tab===5)&&!isOrganizer())tab=1;
   fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
   document.documentElement.style.setProperty('--score-columns',Math.min(SM,5));
-$('accountBar').style.display='flex';$('t3').hidden=!isOrganizer();$('t4').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
-  $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
+  $('accountBar').style.display='flex';$('t5').hidden=!isOrganizer();$('t3').hidden=!isOrganizer();$('t4').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
+  $('t5').className=tab==5?'on':'';$('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
   var activeBy=activeScoreEvaluator(),m=gp().filter(function(p){return mine(p.id,activeBy)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   var targetLabel=activeBy===myId?'you':scoreEvaluatorName(activeBy);
   $('sub').textContent=(isOwner()?'Organizer: ':isOrganizer()?'Co-organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · '+targetLabel+' scored '+m+' of '+gp().length+' on '+day:'');
-  tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
+  tab==5?renderAdminDashboard():tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
 }
 function renderLogin(){
   $('tabs').style.display='none';$('accountBar').style.display='none';$('progress').hidden=true;$('sub').textContent='';
@@ -356,6 +356,11 @@ function renderScore(){
   };
 }
 
+function renderAdminDashboard(){
+  if(!isOrganizer()){tab=1;render();return}
+  $('v').innerHTML='<div class="card"><h2 class="intro">Admin Dashboard</h2><p class="mut">Organizer hub for '+esc(eventName||code)+'. Review the event and open the areas you manage.</p><div class="dashboardStats"><div><strong>'+players.length+'</strong><span>Players</span></div><div><strong>'+scores.length+'</strong><span>Evaluations</span></div><div><strong>'+evaluators.length+'</strong><span>Evaluators</span></div><div><strong>'+groups().length+'</strong><span>Groups</span></div></div></div><div class="card"><b>Manage event</b><p class="mut">Manage the roster or update event setup.</p><div class="dashboardLinks"><button class="pri" id="dashboardRoster">Roster Management</button><button id="dashboardSettings">Settings</button></div></div>';
+  $('dashboardRoster').onclick=function(){tab=4;render()};$('dashboardSettings').onclick=function(){tab=3;setupDraft=null;render()};
+}
 function renderSetup(){
   if(!isOrganizer()){tab=1;render();return}
   if(!setupDraft||setupDraft.group!==grp)setupDraft={group:grp,items:C.length?C.map(function(c){return {name:c,original:c,weight:W[c]}}):Array.from({length:4},function(){return {name:'',original:null,weight:25}}),max:SM};
@@ -491,7 +496,7 @@ async function start(c,n,requireOwner){
   stopEvent();var attempt=connectionId;
   code=c;myName=n;myId=auth.currentUser.uid;eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];organizer=owned||co;eventName=z.eventName||c;
   try{await setDoc(doc(fs,'tryouts',c,'evaluators',myId),{name:n,lastJoinedAt:Date.now()},{merge:true})}catch(e){stopEvent();throw e}
-  tab=requireOwner?3:1;scoringEvaluatorId=myId;ls('tc',c);ls('tn',n);groupSetups={};activeSetupSignature='';
+  tab=organizer?5:1;scoringEvaluatorId=myId;ls('tc',c);ls('tn',n);groupSetups={};activeSetupSignature='';
   function bad(){if(attempt!==connectionId)return;stopEvent();renderLogin();$('le').textContent='Could not access this event. Check the code and connection.'}
   unsubs.push(onSnapshot(ref,function(s){if(attempt!==connectionId)return;if(!s.exists()){bad();return}var z=s.data();eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];if(removedEvaluatorUids.includes(myId)){bad();return}organizer=isOwner()||coOrganizerUids.includes(myId);eventName=z.eventName||c;xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};sessionWeightSetups=z.sessionWeightSetups&&typeof z.sessionWeightSetups==='object'?z.sessionWeightSetups:{};legacySetup={criteria:cleanCriteria(z.criteria),weights:z.weights,categorySources:z.categorySources||{}};groupSetups=z.groupSetups&&typeof z.groupSetups==='object'?z.groupSetups:{};playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){if(attempt!==connectionId)return;players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
@@ -559,6 +564,7 @@ function renderRosterManagement(){
  $('rosterGroupSelect').onchange=function(){grp=this.value;ls('tg',grp);day=null;sel=null;open=null;render()};$('rosterPlayerDisplay').onchange=async function(){if(!isOrganizer())return;var value=this.value;if(!['number','name','both'].includes(value))return;this.disabled=true;try{await setDoc(eventRef(),{playerDisplay:value,showPlayerNames:value!=='number'},{merge:true});playerDisplay=value;render()}catch(e){this.disabled=false;$('rosterDisplayMessage').textContent='Could not save player display. Try again.'}};bindAdd();bindRosterImport();bindAssignment();bindManagePlayers();
 }
 
+$('t5').onclick=function(){if(isOrganizer()){tab=5;render()}};
 $('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t4').onclick=function(){if(isOrganizer()){tab=4;render()}};
 $('t3').onclick=function(){if(isOrganizer()){tab=3;setupDraft=null;render()}};
 $('leaveEvent').onclick=function(){stopEvent();renderLogin()};
