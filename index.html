@@ -45,6 +45,7 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 .pathway-splash.leaving{opacity:0;pointer-events:none}.splash-content{text-align:center}.splash-symbol{display:block;width:150px;height:150px;margin:0 auto 20px;overflow:visible}.splash-route{stroke-dasharray:1;stroke-dashoffset:1;animation:trace-path 1.8s cubic-bezier(.35,0,.3,1) .15s forwards}.splash-middle,.splash-end{opacity:0;animation:show-marker .25s ease forwards}.splash-middle{animation-delay:1.05s}.splash-end{animation-delay:1.8s}.splash-name{font-size:32px;font-weight:750;letter-spacing:-1px;line-height:1.25}.splash-name span{color:#24cbbb}.splash-tagline{color:#bbd7dd;font-size:12px;letter-spacing:1px;margin:10px 0 0}
 @keyframes trace-path{to{stroke-dashoffset:0}}@keyframes show-marker{to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.pathway-splash{transition:none}.splash-route{animation:none;stroke-dashoffset:0}.splash-middle,.splash-end{animation:none;opacity:1}}
+ .dashStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:18px}.dashStat{background:var(--bg);border-radius:12px;padding:12px 6px;text-align:center}.dashStat strong{display:block;font-size:23px}.dashStat span{font-size:11px;color:var(--mut)}.dashTrack{height:9px;background:var(--bd);border-radius:10px;overflow:hidden;margin:15px 0}.dashTrack span{display:block;height:100%;background:var(--ac)}.dashTask{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}.dashTask>span:nth-child(2){flex:1;font-size:13px}.dashTask button{min-height:38px;padding:7px 12px}.dashDone{color:var(--ok);font-weight:800}.dashPending{color:var(--mut)}.dashActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}.dashActions button:last-child{grid-column:1/-1}@media(max-width:400px){.dashStats{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{flex-basis:calc(50% - 6px)}}
 </style></head><body><div id="pathwaySplash" class="pathway-splash" role="status" aria-label="Loading Pathway Evals">
  <div class="splash-content" aria-hidden="true">
   <svg class="splash-symbol" viewBox="0 0 80 80" fill="none">
@@ -78,7 +79,7 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 <main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
-<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
+<div class="tabs" id="tabs" style="display:none"><button id="t0" hidden>Dashboard</button><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
 <div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.5</footer>
 </main>
 <script type="module">
@@ -222,16 +223,16 @@ async function renameGroup(old,name){
 
 function render(){
   if(!myId){renderLogin();return}
-  if((tab===3||tab===4)&&!isOrganizer())tab=1;
+  if((tab===0||tab===3||tab===4)&&!isOrganizer())tab=1;
   fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
   document.documentElement.style.setProperty('--score-columns',Math.min(SM,5));
-$('accountBar').style.display='flex';$('t3').hidden=!isOrganizer();$('t4').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
-  $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
+$('accountBar').style.display='flex';$('t0').hidden=!isOrganizer();$('t3').hidden=!isOrganizer();$('t4').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
+  $('t0').className=tab===0?'on':'';$('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
   var activeBy=activeScoreEvaluator(),m=gp().filter(function(p){return mine(p.id,activeBy)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   var targetLabel=activeBy===myId?'you':scoreEvaluatorName(activeBy);
   $('sub').textContent=(isOwner()?'Organizer: ':isOrganizer()?'Co-organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · '+targetLabel+' scored '+m+' of '+gp().length+' on '+day:'');
-  tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
+  tab===0?renderOrganizerDashboard():tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
 }
 function renderLogin(){
   $('tabs').style.display='none';$('accountBar').style.display='none';$('progress').hidden=true;$('sub').textContent='';
@@ -353,6 +354,26 @@ function renderScore(){
   };
 }
 
+function renderOrganizerDashboard(){
+ if(!isOrganizer()){tab=1;render();return}
+ var assigned=players.filter(function(p){return !!G(p)}).length;
+ var unassigned=players.length-assigned;
+ var groupNames=groups(), configured=groupNames.filter(function(g){return !!(groupSetups[groupKey(g)]&&groupSetups[groupKey(g)].criteria&&groupSetups[groupKey(g)].criteria.length)}).length;
+ var sessions=groupNames.reduce(function(n,g){return n+(xd[g]||[]).length},0);
+ var evaluatorCount=evaluatorRows().filter(function(e){return e.id!==myId}).length;
+ var complete=[players.length>0,unassigned===0&&players.length>0,groupNames.length>0&&configured===groupNames.length,sessions>0,evaluatorCount>0];
+ var tasks=[['Add or import players',4],['Assign players to groups',4],['Configure scoring categories',3],['Set up evaluation sessions',3],['Invite evaluators',3]];
+ var finished=complete.filter(Boolean).length;
+ var percent=Math.round(100*finished/complete.length);
+ var h='<div class="card"><h2 class="intro">Organizer Dashboard</h2><p class="mut">Manage '+esc(eventName||code)+' from one place. Your existing event, scores and settings are unchanged.</p><div class="dashStats">'+[['Players',players.length],['Groups',groupNames.length],['Sessions',sessions],['Scores',scores.length]].map(function(a){return '<div class="dashStat"><strong>'+a[1]+'</strong><span>'+a[0]+'</span></div>'}).join('')+'</div></div>';
+ h+='<div class="card"><div class="row"><b>Event readiness</b><span class="pill">'+finished+' of '+complete.length+' complete</span></div><div class="dashTrack"><span style="width:'+percent+'%"></span></div><p class="mut">Use this checklist to finish setup. You can complete the steps in any order.</p>';
+ tasks.forEach(function(t,i){h+='<div class="dashTask"><span class="'+(complete[i]?'dashDone':'dashPending')+'">'+(complete[i]?'✓':'○')+'</span><span>'+esc(t[0])+'</span><button data-dash-tab="'+t[1]+'">'+(complete[i]?'Review':'Open')+'</button></div>'});
+ h+='</div><div class="card"><b>Quick actions</b><div class="dashActions"><button data-dash-tab="4">Manage players</button><button data-dash-tab="3">Event settings</button><button data-dash-tab="1">Evaluation scoring</button><button data-dash-tab="2">View leaderboard</button><button id="dashShare" class="pri">Share event</button></div></div>';
+ if(unassigned)h+='<div class="card"><b>Needs attention</b><p class="mut">'+unassigned+' player(s) are not assigned to a group.</p><button data-dash-tab="4">Assign players</button></div>';
+ $('v').innerHTML=h;
+ document.querySelectorAll('[data-dash-tab]').forEach(function(b){b.onclick=function(){tab=Number(this.dataset.dashTab);if(tab===3)setupDraft=null;render()}});
+ $('dashShare').onclick=shareEventDialog;
+}
 function renderSetup(){
   if(!isOrganizer()){tab=1;render();return}
   if(!setupDraft||setupDraft.group!==grp)setupDraft={group:grp,items:C.length?C.map(function(c){return {name:c,original:c,weight:W[c]}}):Array.from({length:4},function(){return {name:'',original:null,weight:25}}),max:SM,display:playerDisplay};
@@ -486,7 +507,7 @@ async function start(c,n,requireOwner){
   if((z.removedEvaluatorUids||[]).includes(auth.currentUser.uid))throw Error('permission-denied');
   if(requireOwner&&!owned&&!co)throw new Error('not-owner');
   stopEvent();var attempt=connectionId;
-  code=c;myName=n;myId=auth.currentUser.uid;eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];organizer=owned||co;eventName=z.eventName||c;
+  code=c;myName=n;myId=auth.currentUser.uid;eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];organizer=owned||co;tab=organizer?0:1;eventName=z.eventName||c;
   try{await setDoc(doc(fs,'tryouts',c,'evaluators',myId),{name:n,lastJoinedAt:Date.now()},{merge:true})}catch(e){stopEvent();throw e}
   tab=requireOwner?3:1;scoringEvaluatorId=myId;ls('tc',c);ls('tn',n);groupSetups={};activeSetupSignature='';
   function bad(){if(attempt!==connectionId)return;stopEvent();renderLogin();$('le').textContent='Could not access this event. Check the code and connection.'}
@@ -556,7 +577,7 @@ function renderRosterManagement(){
  $('rosterGroupSelect').onchange=function(){grp=this.value;ls('tg',grp);day=null;sel=null;open=null;render()};bindAdd();bindRosterImport();bindAssignment();bindManagePlayers();
 }
 
-$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t4').onclick=function(){if(isOrganizer()){tab=4;render()}};
+$('t0').onclick=function(){if(isOrganizer()){tab=0;render()}};$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t4').onclick=function(){if(isOrganizer()){tab=4;render()}};
 $('t3').onclick=function(){if(isOrganizer()){tab=3;setupDraft=null;render()}};
 $('leaveEvent').onclick=function(){stopEvent();renderLogin()};
 $('signOutBtn').onclick=async function(){stopEvent();await signOut(auth);renderLogin()};
