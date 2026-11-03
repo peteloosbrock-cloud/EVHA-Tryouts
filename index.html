@@ -35,7 +35,7 @@ input,select,textarea{background:var(--bg);border-color:var(--bd);border-radius:
 /* Brand colors and custom pathway symbol */
 :root{--bg:#e5f8f4;--bd:#cfe7e3;--ac:#087f83}
 body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radial-gradient(ellipse at 100% 42%,#c5eaf7 0,transparent 60%),#e5f8f4;background-attachment:fixed}
-.brand{padding:18px 20px;margin-bottom:18px;background:#0c2139;color:#fff;border-radius:20px;box-shadow:0 8px 24px #0c213914}.brand .mark{width:48px;height:48px;background:#0c2139;box-shadow:none;border-radius:14px}.brand h1 span{color:#24cbbb}.brand .tagline{color:#bbd7dd;font-size:11px;letter-spacing:1px}.tabs{background:#d1eee8}.card{box-shadow:0 5px 24px #0c213906}.danger{color:#b33b45!important}.player-management{margin-top:14px}.player-management label{margin-top:12px}.dashboardStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}.dashboardStats>div{display:flex;flex-direction:column;gap:3px;padding:15px;background:var(--bg);border:1px solid var(--bd);border-radius:13px}.dashboardStats strong{font-size:24px;color:var(--ac);line-height:1.1}.dashboardStats span{color:var(--mut);font-size:12px}.dashboardLinks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.dashboardLinks button{width:100%;min-height:54px}#accountBar{grid-template-columns:1fr 1.3fr 1fr;gap:8px}#accountBar button{min-width:0;padding:10px 8px;font-size:13px;white-space:nowrap}
+.brand{padding:18px 20px;margin-bottom:18px;background:#0c2139;color:#fff;border-radius:20px;box-shadow:0 8px 24px #0c213914}.brand .mark{width:48px;height:48px;background:#0c2139;box-shadow:none;border-radius:14px}.brand h1 span{color:#24cbbb}.brand .tagline{color:#bbd7dd;font-size:11px;letter-spacing:1px}.tabs{background:#d1eee8}.card{box-shadow:0 5px 24px #0c213906}.danger{color:#b33b45!important}.player-management{margin-top:14px}.player-management label{margin-top:12px}.dashboardStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}.dashboardStats>div{display:flex;flex-direction:column;gap:3px;padding:15px;background:var(--bg);border:1px solid var(--bd);border-radius:13px}.dashboardStats strong{font-size:24px;color:var(--ac);line-height:1.1}.dashboardStats span{color:var(--mut);font-size:12px}.dashboardLinks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.dashboardLinks button{width:100%;min-height:54px}
 @media(max-width:400px){.brand{padding:16px 14px;gap:9px}.brand h1{font-size:24px}.brand .tagline{font-size:10px;letter-spacing:.7px}}
 @media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
 
@@ -77,9 +77,9 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 <noscript><style>.pathway-splash{display:none}</style></noscript>
 <main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
-<div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="t5">Admin Dashboard</button><button id="signOutBtn">Sign out</button></div>
-<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.7</footer>
+<div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
+<div class="tabs" id="tabs" style="display:none"><button id="t5">Admin Dashboard</button><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.5</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -226,8 +226,8 @@ function render(){
   fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
   document.documentElement.style.setProperty('--score-columns',Math.min(SM,5));
-  $('accountBar').style.display=isOrganizer()?'grid':'flex';$('t5').hidden=!isOrganizer();$('t5').className=tab==5?'on':'';$('tabs').style.display='flex';$('progress').hidden=tab!==1;
-  $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';
+  $('accountBar').style.display='flex';$('t5').hidden=!isOrganizer();$('t3').hidden=!isOrganizer();$('t4').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
+  $('t5').className=tab==5?'on':'';$('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
   var activeBy=activeScoreEvaluator(),m=gp().filter(function(p){return mine(p.id,activeBy)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   var targetLabel=activeBy===myId?'you':scoreEvaluatorName(activeBy);
   $('sub').textContent=(isOwner()?'Organizer: ':isOrganizer()?'Co-organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · '+targetLabel+' scored '+m+' of '+gp().length+' on '+day:'');
@@ -565,7 +565,8 @@ function renderRosterManagement(){
 }
 
 $('t5').onclick=function(){if(isOrganizer()){tab=5;render()}};
-$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};
+$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t4').onclick=function(){if(isOrganizer()){tab=4;render()}};
+$('t3').onclick=function(){if(isOrganizer()){tab=3;setupDraft=null;render()}};
 $('leaveEvent').onclick=function(){stopEvent();renderLogin()};
 $('signOutBtn').onclick=async function(){stopEvent();await signOut(auth);renderLogin()};
 
