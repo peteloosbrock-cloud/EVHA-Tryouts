@@ -35,7 +35,7 @@ input,select,textarea{background:var(--bg);border-color:var(--bd);border-radius:
 /* Brand colors and custom pathway symbol */
 :root{--bg:#e5f8f4;--bd:#cfe7e3;--ac:#087f83}
 body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radial-gradient(ellipse at 100% 42%,#c5eaf7 0,transparent 60%),#e5f8f4;background-attachment:fixed}
-.brand{padding:18px 20px;margin-bottom:18px;background:#0c2139;color:#fff;border-radius:20px;box-shadow:0 8px 24px #0c213914}.brand .mark{width:48px;height:48px;background:#0c2139;box-shadow:none;border-radius:14px}.brand h1 span{color:#24cbbb}.brand .tagline{color:#bbd7dd;font-size:11px;letter-spacing:1px}.tabs{background:#d1eee8}.card{box-shadow:0 5px 24px #0c213906}.danger{color:#b33b45!important}.player-management{margin-top:14px}.player-management label{margin-top:12px}
+.brand{padding:18px 20px;margin-bottom:18px;background:#0c2139;color:#fff;border-radius:20px;box-shadow:0 8px 24px #0c213914}.brand .mark{width:48px;height:48px;background:#0c2139;box-shadow:none;border-radius:14px}.brand h1 span{color:#24cbbb}.brand .tagline{color:#bbd7dd;font-size:11px;letter-spacing:1px}.tabs{background:#d1eee8}.card{box-shadow:0 5px 24px #0c213906}.danger{color:#b33b45!important}.player-management{margin-top:14px}.player-management label{margin-top:12px}.roster-player-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-top:14px}.roster-player{padding:11px 13px;background:var(--bg);border:1px solid var(--bd);border-radius:11px;font-weight:600}
 @media(max-width:400px){.brand{padding:16px 14px;gap:9px}.brand h1{font-size:24px}.brand .tagline{font-size:10px;letter-spacing:.7px}}
 @media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
 
@@ -45,9 +45,7 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 .pathway-splash.leaving{opacity:0;pointer-events:none}.splash-content{text-align:center}.splash-symbol{display:block;width:150px;height:150px;margin:0 auto 20px;overflow:visible}.splash-route{stroke-dasharray:1;stroke-dashoffset:1;animation:trace-path 1.8s cubic-bezier(.35,0,.3,1) .15s forwards}.splash-middle,.splash-end{opacity:0;animation:show-marker .25s ease forwards}.splash-middle{animation-delay:1.05s}.splash-end{animation-delay:1.8s}.splash-name{font-size:32px;font-weight:750;letter-spacing:-1px;line-height:1.25}.splash-name span{color:#24cbbb}.splash-tagline{color:#bbd7dd;font-size:12px;letter-spacing:1px;margin:10px 0 0}
 @keyframes trace-path{to{stroke-dashoffset:0}}@keyframes show-marker{to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.pathway-splash{transition:none}.splash-route{animation:none;stroke-dashoffset:0}.splash-middle,.splash-end{animation:none;opacity:1}}
- #accountBar{gap:8px}#accountBar button{flex:1;min-width:0;padding:10px 5px;font-size:13px} .dashStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:18px}.dashStat{background:var(--bg);border-radius:12px;padding:12px 6px;text-align:center}.dashStat strong{display:block;font-size:23px}.dashStat span{font-size:11px;color:var(--mut)}.dashTrack{height:9px;background:var(--bd);border-radius:10px;overflow:hidden;margin:15px 0}.dashTrack span{display:block;height:100%;background:var(--ac)}.dashTask{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}.dashTask>span:nth-child(2){flex:1;font-size:13px}.dashTask button{min-height:38px;padding:7px 12px}.dashDone{color:var(--ok);font-weight:800}.dashPending{color:var(--mut)}.dashActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}.dashActions button:last-child{grid-column:1/-1}@media(max-width:400px){.dashStats{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{flex-basis:calc(50% - 6px)}}
-.hubBack{margin-bottom:14px}.hubNav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.hubNav button{text-align:left;padding:14px;min-height:74px}.hubNav span{display:block;font-weight:700}.hubNav small{display:block;color:var(--mut);font-weight:400;line-height:1.5;margin-top:3px}@media(max-width:450px){.hubNav{grid-template-columns:1fr}}.wizardSteps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:14px 0 24px}.wizardSteps button{min-width:0;padding:5px;min-height:42px}.wizardInfo{padding:16px;background:var(--bg);border-radius:12px;font-weight:600;margin:16px 0}.wizardNav{display:flex;justify-content:space-between;gap:10px;margin-top:24px}.wizardReview>div{padding:12px 0;border-bottom:1px solid var(--bd)}
-.dashActions button{min-width:0}.dashActions{grid-template-columns:repeat(2,minmax(0,1fr))}</style></head><body><div id="pathwaySplash" class="pathway-splash" role="status" aria-label="Loading Pathway Evals">
+</style></head><body><div id="pathwaySplash" class="pathway-splash" role="status" aria-label="Loading Pathway Evals">
  <div class="splash-content" aria-hidden="true">
   <svg class="splash-symbol" viewBox="0 0 80 80" fill="none">
    <path class="splash-route" pathLength="1" d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/>
@@ -79,9 +77,9 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 <noscript><style>.pathway-splash{display:none}</style></noscript>
 <main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
-<div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="t0" hidden>Admin Dashboard</button><button id="signOutBtn">Sign out</button></div>
+<div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="signOutBtn">Sign out</button></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t4">Roster Management</button><button id="t3">Settings</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.7</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.5</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -104,11 +102,11 @@ function isOwner(){return !!auth.currentUser&&auth.currentUser.uid===eventOwnerU
 function isOrganizer(){return !!organizer&&!!auth.currentUser}
 function normalizeCode(c){return c.trim().toUpperCase()}
 function validCode(c){return /^[A-Z0-9][A-Z0-9-]{3,23}$/.test(c)}
-function stopEvent(){scoringEvaluatorId=null;rosterImport={rows:[],errors:[],message:"",busy:false,loading:false};eventOwnerUid='';coOrganizerUids=[];removedEvaluatorUids=[];evaluators=[];connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};sessionWeightSetups={};scoringTemplates={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;wizardStep=0;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
+function stopEvent(){scoringEvaluatorId=null;rosterImport={rows:[],errors:[],message:"",busy:false,loading:false};eventOwnerUid='';coOrganizerUids=[];removedEvaluatorUids=[];evaluators=[];connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};sessionWeightSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
 function authError(e){return e.code==='auth/operation-not-allowed'?'Enable Email/Password and Anonymous sign-in in Firebase first.':e.code==='auth/email-already-in-use'?'This email already has an account. Choose Sign in.':e.code==='auth/weak-password'?'Choose a stronger password (at least 6 characters).':e.code==='permission-denied'?'Access denied. Check the Firebase rules and event ownership.':e.code==='auth/too-many-requests'?'Too many attempts. Please try again later.':'Could not complete this action. Check your details and connection.'}
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
 var playerDisplay='number',categorySources={},setupDraft=null,removingPlayer=false;
-var sessionWeightSetups={},scoringTemplates={};
+var sessionWeightSetups={};
 var groupSetups={},legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}},activeSetupSignature='';
 function groupKey(g){return 'g_'+encodeURIComponent(g).replace(/\./g,'%2E')}
 function setupFor(g){return groupSetups[groupKey(g)]||legacySetup}
@@ -125,7 +123,7 @@ function equalWeights(a){var out={},base=Math.floor(100/a.length),left=100-base*
 function cleanWeights(raw,a){var out={},sum=0;a.forEach(function(c){var n=Number(raw&&raw[c]);if(isFinite(n)&&n>=0){out[c]=n;sum+=n}});return Math.abs(sum-100)<0.001?out:equalWeights(a)}
 function eventRef(){return doc(fs,'tryouts',code)}
 async function deleteEventCollection(c,name){var ref=collection(fs,'tryouts',c,name);while(true){var snap=await getDocs(ref);if(snap.empty)return;for(var i=0;i<snap.docs.length;i+=450){var batch=writeBatch(fs);snap.docs.slice(i,i+450).forEach(function(d){batch.delete(d.ref)});await batch.commit()}}}
-var wizardStep=0,players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,comparePlayerIds=[],fs=null,code=null,myId=null,myName=null,unsubs=[];
+var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,comparePlayerIds=[],fs=null,code=null,myId=null,myName=null,unsubs=[];
 var grp=ls('tg')||null,day=null,bday='all',xg=[],xd={};
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -224,17 +222,16 @@ async function renameGroup(old,name){
 
 function render(){
   if(!myId){renderLogin();return}
-  if((tab===0||tab===5||tab===3||tab===4)&&!isOrganizer())tab=1;
+  if((tab===3||tab===4)&&!isOrganizer())tab=1;
   fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
   document.documentElement.style.setProperty('--score-columns',Math.min(SM,5));
-$('accountBar').style.display='flex';$('t0').hidden=!isOrganizer();$('t3').hidden=true;$('t4').hidden=true;$('tabs').style.display='flex';$('progress').hidden=tab!==1;
-  $('t0').className=tab===0?'pri':'';$('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
+$('accountBar').style.display='flex';$('t3').hidden=!isOrganizer();$('t4').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
+  $('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t3').className=tab==3?'on':'';$('t4').className=tab==4?'on':'';
   var activeBy=activeScoreEvaluator(),m=gp().filter(function(p){return mine(p.id,activeBy)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   var targetLabel=activeBy===myId?'you':scoreEvaluatorName(activeBy);
   $('sub').textContent=(isOwner()?'Organizer: ':isOrganizer()?'Co-organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · '+targetLabel+' scored '+m+' of '+gp().length+' on '+day:'');
-  tab===5?renderGuidedSetup():tab===0?renderOrganizerDashboard():tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
-  if(isOrganizer()&&(tab===3||tab===4)){var back=document.createElement('button');back.textContent='← Admin Dashboard';back.className='hubBack';back.onclick=function(){tab=0;render()};$('v').prepend(back)}
+  tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
 }
 function renderLogin(){
   $('tabs').style.display='none';$('accountBar').style.display='none';$('progress').hidden=true;$('sub').textContent='';
@@ -322,6 +319,10 @@ function bindRosterImport(){
 function addPlayersCard(){
   return '<div class="card"><b>Add players</b><div class="mut" style="margin:6px 0 12px">Enter one number, a range (1-20), or a list (4,7,15). Add a name only for a single player.</div><label for="pu">Player / number</label><div class="row"><input id="pu" placeholder="e.g. 12 or 1-20" style="flex:1;margin:0"><button class="pri" id="pa">Add</button></div>'+(playerDisplay!=='number'?'<label for="pn" style="margin-top:12px">Player name (optional)</label><input id="pn" placeholder="Name for a single player" maxlength="80">':'')+'<div class="inlineMessage" id="addMsg" role="status"></div></div>';
 }
+function rosterDisplayCard(){
+  var roster=players.filter(function(p){return G(p)===grp}).slice().sort(function(a,b){return nat(String(a.num),String(b.num))||nat(String(a.name||''),String(b.name||''))});
+  return '<div class="card"><div class="row"><b>Players in '+esc(grp||'selected group')+'</b><span class="pill">'+roster.length+' player'+(roster.length===1?'':'s')+'</span></div>'+(roster.length?'<div class="roster-player-list">'+roster.map(function(p){return '<div class="roster-player">'+lab(p)+'</div>'}).join('')+'</div>':'<p class="mut" style="margin:10px 0 0">No players in this group yet. Add players above or import a roster below.</p>')+'</div>';
+}
 function renderScore(){
   var h=selCard(false);
   if(!grp||!day){$('v').innerHTML=h+'<div class="card mut">The organizer must create a group and session before scoring.</div>';bindSel(false);return}
@@ -356,89 +357,6 @@ function renderScore(){
   };
 }
 
-
-function adminToolsCard(){return '<div class="card"><h2 class="section-title">Organizer tools</h2><p class="mut">Prepare new events, monitor evaluators, and reuse scoring configurations.</p><div class="dashActions"><button id="duplicateEvent">Duplicate event</button><button id="bulkAssignShortcut">Bulk player assignments</button><button id="evaluatorProgress">Evaluator progress</button><button id="scoringTemplates">Scoring templates</button><button id="finalResults">Final results PDF</button></div></div>'}
-function bindAdminTools(){
- $('duplicateEvent').onclick=duplicateEventDialog;
- $('bulkAssignShortcut').onclick=function(){tab=4;render();setTimeout(function(){var el=$('assignmentFilter');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},80)};
- $('evaluatorProgress').onclick=evaluatorProgressDialog;
- $('scoringTemplates').onclick=scoringTemplatesDialog;
- $('finalResults').onclick=exportResultsPDF;
-}
-function duplicateEventDialog(){
- if(!isOwner()){alert('Only the event owner can duplicate this event.');return}
- var d=managementDialog('Duplicate event','<p class="mut">Copies groups, sessions, scoring categories, scoring scales, and weights. Does not copy players, scores, or evaluators.</p><label for="duplicateName">New event name</label><input id="duplicateName" maxlength="100" value="'+esc(eventName+' Copy')+'"><label for="duplicateCode">New event code</label><input id="duplicateCode" maxlength="24" placeholder="e.g. EVHA2027"><button class="pri" id="duplicateConfirm">Create duplicate</button><p id="duplicateStatus" role="status" class="mut"></p>');
- $('duplicateConfirm').onclick=async function(){var n=$('duplicateName').value.trim(),c=normalizeCode($('duplicateCode').value);if(!n||!validCode(c)){$('duplicateStatus').textContent='Enter a name and a valid unused code (4–24 letters, numbers, or hyphens).';return}if(c===code){$('duplicateStatus').textContent='Choose a different event code.';return}this.disabled=true;try{var uid=myId,source=await getDoc(eventRef());if(!source.exists()||source.data().ownerUid!==uid)throw Error('not-owner');var z=source.data();await runTransaction(fs,async function(tx){var ref=doc(fs,'tryouts',c),old=await tx.get(ref);if(old.exists())throw Error('code-in-use');tx.set(ref,{ownerUid:uid,eventName:n,createdAt:Date.now(),duplicatedFrom:code,groups:z.groups||[],groupDays:z.groupDays||{},groupSetups:z.groupSetups||{},sessionWeightSetups:z.sessionWeightSetups||{},scoringTemplates:z.scoringTemplates||{},criteria:z.criteria||[],weights:z.weights||{},categorySources:z.categorySources||{},scoreMax:z.scoreMax||10,playerDisplay:z.playerDisplay||'number'})});$('duplicateStatus').textContent='New event '+c+' created. Use Switch event to open it.'}catch(e){$('duplicateStatus').textContent=e.message==='code-in-use'?'That code already exists.':'Could not duplicate. Check permissions and connection.';this.disabled=false}};
-}
-function evaluatorProgressDialog(){
- if(!isOrganizer())return;
- var d=managementDialog('Evaluator progress','<p class="mut">Progress is based on saved evaluations for the selected group and session. Each player counts once per evaluator.</p><label>Group</label><select id="progressGroup">'+groups().map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select><label>Session</label><select id="progressSession"></select><div id="progressDetails"></div>');
- function updateSessions(){var g=$('progressGroup').value,ds=Array.from(new Set((xd[g]||[]).concat(scores.filter(function(s){return players.some(function(p){return p.id===s.player&&G(p)===g})}).map(D))));$('progressSession').innerHTML=ds.map(function(x){return '<option value="'+esc(x)+'">'+esc(x)+'</option>'}).join('');show()}
- function show(){var g=$('progressGroup').value,d=$('progressSession').value,ps=players.filter(function(p){return G(p)===g}),ids=new Set(ps.map(function(p){return p.id})),rows=evaluatorRows().filter(function(e){return !removedEvaluatorUids.includes(e.id)});$('progressDetails').innerHTML='<p class="mut">'+ps.length+' players · '+(d?esc(d):'No session')+'</p>'+rows.map(function(e){var done=new Set(scores.filter(function(s){return s.by===e.id&&D(s)===d&&ids.has(s.player)}).map(function(s){return s.player})).size,percent=ps.length?Math.round(done/ps.length*100):0;return '<div style="padding:12px 0;border-bottom:1px solid var(--bd)"><div class="row"><b>'+esc(e.name||'Evaluator')+'</b><span>'+done+' / '+ps.length+'</span></div><div class="dashTrack"><span style="width:'+percent+'%"></span></div><div class="mut">'+(ps.length-done)+' remaining · '+percent+'% complete</div></div>'}).join('')};$('progressGroup').onchange=updateSessions;updateSessions();$('progressSession').onchange=show;
-}
-function scoringTemplatesDialog(){
- if(!isOrganizer())return;
- var names=Object.keys(scoringTemplates).sort(nat),d=managementDialog('Scoring templates','<p class="mut">Save the selected group’s categories and weights, then apply a template to another group. The scoring scale is event-wide and is not changed by templates.</p><label>Template name</label><input id="templateName" maxlength="60" placeholder="e.g. Hockey standard"><button id="templateSave" class="pri">Save current group as template</button><label style="margin-top:16px">Saved templates</label><select id="templateSelect">'+names.map(function(n){return '<option value="'+esc(n)+'">'+esc(n)+'</option>'}).join('')+'</select><label>Apply to group</label><select id="templateGroup">'+groups().map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select><button id="templateApply"'+(names.length?'':' disabled')+'>Apply template</button><p id="templateStatus" class="mut" role="status"></p>');
- $('templateSave').onclick=async function(){var name=$('templateName').value.trim();if(!name||name.length>60||['__proto__','constructor','prototype'].includes(name)){$('templateStatus').textContent='Enter a valid template name.';return}if(scoringTemplates[name]&&!confirm('Replace the existing template?'))return;try{var next=Object.assign({},scoringTemplates);next[name]={criteria:C.slice(),weights:Object.assign({},W),categorySources:JSON.parse(JSON.stringify(categorySources||{}))};await setDoc(eventRef(),{scoringTemplates:next},{merge:true});scoringTemplates=next;d.close();scoringTemplatesDialog()}catch(e){$('templateStatus').textContent='Could not save template.'}};
- $('templateApply').onclick=async function(){var name=$('templateSelect').value,g=$('templateGroup').value,t=scoringTemplates[name];if(!t||!g)return;if(!confirm('Replace scoring categories and weights for '+g+'? Existing scores will be retained.'))return;try{var patch={};patch[groupKey(g)]=t;await setDoc(eventRef(),{groupSetups:patch},{merge:true});groupSetups[groupKey(g)]=t;setupDraft=null;d.close();render()}catch(e){$('templateStatus').textContent='Could not apply template.'}};
-}
-function exportResultsPDF(){
- if(!isOrganizer())return;
- var g=grp||groups()[0];if(!g){alert('Create a group first.');return}
- var oldGrp=grp,oldBday=bday,oldC=C.slice(),oldW=Object.assign({},W),oldSources=categorySources;
- try{grp=g;bday='all';applyGroupSetup();var ps=players.filter(function(p){return G(p)===g}),rows=ps.map(function(p){return {p:p,s:stats(p.id)}}).sort(function(a,b){return b.s.avg-a.s.avg});var cols=C.slice(),html='<!doctype html><html><head><meta charset="utf-8"><title>Pathway Evals Results</title><style>body{font:13px Arial,sans-serif;color:#16283f;margin:32px}h1{margin-bottom:4px}p{color:#556}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{padding:9px 7px;text-align:left;border-bottom:1px solid #ddd}th{background:#e5f8f4}footer{margin-top:20px;font-size:11px;color:#667}@media print{@page{size:landscape;margin:14mm}button{display:none}}</style></head><body><h1>Pathway Evals — Final Results</h1><p>'+esc(eventName||code)+' · '+esc(g)+' · All sessions · '+new Date().toLocaleDateString()+'</p><table><thead><tr><th>Rank</th><th>Player</th><th>Average</th><th>Evaluations</th><th>Sessions</th>'+cols.map(function(c){return '<th>'+esc(c)+'</th>'}).join('')+'</tr></thead><tbody>'+rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+esc(playerText(r.p))+'</td><td>'+(r.s.n?f(r.s.avg):'—')+'</td><td>'+r.s.n+'</td><td>'+r.s.days+'</td>'+r.s.per.map(function(v){return '<td>'+(r.s.n?f(v):'—')+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table><footer>Generated by Pathway Evals. Averages use the event’s configured category and session weights. Print or Save as PDF.</footer></body></html>';var w=window.open('','_blank');if(!w){alert('Allow pop-ups to open the print-ready report.');return}w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(function(){w.print()},400)}finally{grp=oldGrp;bday=oldBday;C=oldC;W=oldW;categorySources=oldSources;activeSetupSignature='';applyGroupSetup()}
-}
-
-function renderOrganizerDashboard(){
- if(!isOrganizer()){tab=1;render();return}
- var assigned=players.filter(function(p){return !!G(p)}).length;
- var unassigned=players.length-assigned;
- var groupNames=groups(), configured=groupNames.filter(function(g){return !!(groupSetups[groupKey(g)]&&groupSetups[groupKey(g)].criteria&&groupSetups[groupKey(g)].criteria.length)}).length;
- var sessions=groupNames.reduce(function(n,g){return n+(xd[g]||[]).length},0);
- var evaluatorCount=evaluatorRows().filter(function(e){return e.id!==myId}).length;
- var complete=[players.length>0,unassigned===0&&players.length>0,groupNames.length>0&&configured===groupNames.length,sessions>0,evaluatorCount>0];
- var tasks=[['Add or import players',4],['Assign players to groups',4],['Configure scoring categories',3],['Set up evaluation sessions',3],['Invite evaluators',3]];
- var finished=complete.filter(Boolean).length;
- var percent=Math.round(100*finished/complete.length);
- var h='<div class="card"><b>Guided setup</b><p class="mut">Follow six steps to prepare your event.</p><button class="pri" id="startWizard">Guided Event Setup</button></div><div class="card"><h2 class="intro">Admin Dashboard</h2><p class="mut">Manage '+esc(eventName||code)+' from one place. </p><div class="dashStats">'+[['Players',players.length],['Groups',groupNames.length],['Sessions',sessions],['Scores',scores.length]].map(function(a){return '<div class="dashStat"><strong>'+a[1]+'</strong><span>'+a[0]+'</span></div>'}).join('')+'</div></div>';
- h+='<div class="card"><div class="row"><b>Event readiness</b><span class="pill">'+finished+' of '+complete.length+' complete</span></div><div class="dashTrack"><span style="width:'+percent+'%"></span></div><p class="mut">Use this checklist to finish setup. You can complete the steps in any order.</p>';
- tasks.forEach(function(t,i){h+='<div class="dashTask"><span class="'+(complete[i]?'dashDone':'dashPending')+'">'+(complete[i]?'✓':'○')+'</span><span>'+esc(t[0])+'</span><button data-dash-tab="'+t[1]+'">'+(complete[i]?'Review':'Open')+'</button></div>'});
- h+='</div>'; 
- h+='<div class="card"><h2 class="section-title">Manage your event</h2><p class="mut">Open the tools you need from here. Scoring and Leaderboard remain available in the main navigation.</p><div class="hubNav"><button data-dash-tab="4"><span>Roster management</span><small>Import, assign and edit players</small></button><button data-dash-tab="3"><span>Event settings</span><small>Groups, sessions, scoring and sharing</small></button><button data-dash-tab="1"><span>Evaluation scoring</span><small>Enter or update player evaluations</small></button><button data-dash-tab="2"><span>Leaderboard</span><small>Review rankings and compare players</small></button></div></div>';
- h+=adminToolsCard();
- if(unassigned)h+='<div class="card"><b>Needs attention</b><p class="mut">'+unassigned+' player(s) are not assigned to a group.</p><button data-dash-tab="4">Assign players</button></div>';
- $('v').innerHTML=h;
- document.querySelectorAll('[data-dash-tab]').forEach(function(b){b.onclick=function(){tab=Number(this.dataset.dashTab);if(tab===3)setupDraft=null;render()}});
- bindAdminTools();$('startWizard').onclick=function(){wizardStep=0;tab=5;render()};
-}
-
-function renderGuidedSetup(){
- if(!isOrganizer()){tab=1;render();return}
- var gl=groups(),assigned=players.filter(function(p){return !!G(p)}).length;
- var sessions=gl.reduce(function(n,g){return n+(xd[g]||[]).length},0);
- var configured=gl.filter(function(g){var c=setupFor(g);return !!(c&&c.criteria&&c.criteria.length)}).length;
- var evaluatorCount=evaluatorRows().filter(function(e){return e.id!==myId}).length;
- var steps=[
-  {title:'Event Details',description:'Review the event name and code. Event names can be edited in Settings.',status:!!eventName,detail:'Event: '+(eventName||code)+' · Code: '+code,action:'Edit event details',tab:3},
-  {title:'Players & Groups',description:'Import your roster, then assign each player to an evaluation group.',status:players.length>0&&assigned===players.length,detail:players.length+' players · '+(players.length-assigned)+' unassigned · '+gl.length+' groups',action:'Manage roster and assignments',tab:4},
-  {title:'Scoring Setup',description:'Set scoring scale, categories and category weights for each group.',status:gl.length>0&&configured===gl.length,detail:configured+' of '+gl.length+' groups configured · 1–'+SM+' scoring scale',action:'Configure scoring',tab:3},
-  {title:'Sessions',description:'Create sessions for each group and review session weights.',status:sessions>0,detail:sessions+' sessions across '+gl.length+' groups',action:'Manage sessions and weights',tab:3},
-  {title:'Evaluators',description:'Share the event link. Evaluators join with their name and event code.',status:evaluatorCount>0,detail:evaluatorCount+' evaluator(s) joined',action:'Share event invitation',share:true},
-  {title:'Review & Finish',description:'Review the event readiness before your first evaluation.',status:false,detail:'Your event is ready when the required setup steps are complete.',action:'Return to Admin Dashboard',tab:0}
- ];
- var idx=Math.max(0,Math.min(wizardStep,steps.length-1)),item=steps[idx];
- var h='<div class="card"><div class="row"><b>Guided Event Setup</b><button id="wizardExit">Exit</button></div><p class="mut">Step '+(idx+1)+' of '+steps.length+' · '+esc(eventName||code)+'</p><div class="wizardSteps">'+steps.map(function(x,i){return '<button class="'+(i===idx?'on':'')+'" data-wstep="'+i+'" aria-label="Step '+(i+1)+': '+esc(x.title)+'">'+(i+1)+'</button>'}).join('')+'</div><h2 class="intro">'+esc(item.title)+'</h2><p>'+esc(item.description)+'</p>';
- if(idx===5){h+='<div class="wizardReview">'+steps.slice(0,5).map(function(x){return '<div><span class="'+(x.status?'dashDone':'dashPending')+'">'+(x.status?'✓':'○')+'</span> '+esc(x.title)+' <span class="mut">'+(x.status?'Ready':'Review needed')+'</span></div>'}).join('')+'</div>'}
- else h+='<div class="wizardInfo">'+esc(item.detail)+'</div><p class="mut">'+(item.status?'✓ This step appears complete. You can review it or continue.':'Complete this step using the existing event tools, then return to the wizard.')+'</p>';
- h+='<button id="wizardAction" class="pri">'+esc(item.action)+'</button><div class="wizardNav"><button id="wizardBack"'+(idx===0?' disabled':'')+'>Back</button><button id="wizardNext" class="pri">'+(idx===5?'Finish':'Next step')+'</button></div></div>';
- h+='<div class="card"><b>How this works</b><p class="mut">Your changes save through the existing Pathway Evals screens. This wizard does not duplicate your event data or change scoring calculations. You can leave and return at any time.</p></div>';
- $('v').innerHTML=h;
- document.querySelectorAll('[data-wstep]').forEach(function(b){b.onclick=function(){wizardStep=Number(this.dataset.wstep);render()}});
- $('wizardExit').onclick=function(){tab=0;render()};
- $('wizardBack').onclick=function(){wizardStep=Math.max(0,wizardStep-1);render()};
- $('wizardNext').onclick=function(){if(wizardStep===5){tab=0}else wizardStep++;render()};
- $('wizardAction').onclick=function(){if(item.share){shareEventDialog();return}tab=item.tab;if(tab===3)setupDraft=null;render()};
-}
 function renderSetup(){
   if(!isOrganizer()){tab=1;render();return}
   if(!setupDraft||setupDraft.group!==grp)setupDraft={group:grp,items:C.length?C.map(function(c){return {name:c,original:c,weight:W[c]}}):Array.from({length:4},function(){return {name:'',original:null,weight:25}}),max:SM,display:playerDisplay};
@@ -527,8 +445,8 @@ function compareDialog(){
 }
 function renderBoard(){
   var rows=gp().map(function(p){return{p:p,s:stats(p.id)}}).sort(function(a,b){return b.s.avg-a.s.avg});
-  var h=selCard(true)+'<div class="row" style="margin-bottom:8px;justify-content:flex-end"><div style="display:flex;gap:8px;flex-shrink:0"><button id="comparePlayers">Compare players</button><button id="ex">Export CSV</button>'+(isOrganizer()?'<button id="resultsPdf">Final results PDF</button>':'')+'</div></div>';
-  $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;if($('resultsPdf'))$('resultsPdf').onclick=exportResultsPDF;
+  var h=selCard(true)+'<div class="row" style="margin-bottom:8px"><span class="mut">'+(bday==='all'?esc(sessionWeightDescription()):'Average across evaluators for '+esc(bday))+'</span><div style="display:flex;gap:8px;flex-shrink:0"><button id="comparePlayers">Compare players</button><button id="ex">Export CSV</button></div></div>';
+  $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;
   if(!rows.length){$('v').innerHTML=h+'<div class="card mut">No players in '+esc(grp)+' yet.</div>';bindSel(true);$('ex').onclick=function(){};return}
   h+='<div class="card tw"><table><tr><th>#</th><th>Player / number</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Sessions</th>'+C.map(function(c){return '<th class="n">'+esc(shortName(c))+'</th>'}).join('')+'</tr>';
   rows.forEach(function(r,i){
@@ -537,7 +455,7 @@ function renderBoard(){
     if(open===r.p.id)h+='<tr><td></td><td colspan="'+(4+C.length)+'">'+(s.e.slice().sort(function(a,b){return nat(D(a),D(b))}).map(function(e){return '<div class="mut">'+esc(D(e))+' · '+esc(e.who||e.by)+(e.enteredBy&&e.enteredBy!==e.by?' · entered by '+esc(scoreEvaluatorName(e.enteredBy)):'')+': <b>'+f(evalOverall(e))+'</b> ('+C.map(function(c){return Math.round(sv(e,c)*10)/10}).join('/')+')'+(e.note?'<div style="color:var(--tx);white-space:normal;margin:2px 0 8px">“'+esc(e.note)+'”</div>':'')+'</div>'}).join('')||'<div class="mut">No scores yet</div>')+'</td></tr>';
   });
   h+='</table></div><div class="mut">Tap a row to see each evaluator. ⚠ = evaluators differ by '+(Math.round(SM*3)/10)+'+ points overall in the same session.</div>';
-  $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;if($('resultsPdf'))$('resultsPdf').onclick=exportResultsPDF;
+  $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;
   Array.prototype.forEach.call(document.querySelectorAll('tr.p'),function(t){t.onclick=function(){open=open===t.dataset.id?null:t.dataset.id;render()}});
   $('ex').onclick=function(){
     var q=function(x){return '"'+String(x).replace(/"/g,'""')+'"'};
@@ -572,11 +490,11 @@ async function start(c,n,requireOwner){
   if((z.removedEvaluatorUids||[]).includes(auth.currentUser.uid))throw Error('permission-denied');
   if(requireOwner&&!owned&&!co)throw new Error('not-owner');
   stopEvent();var attempt=connectionId;
-  code=c;myName=n;myId=auth.currentUser.uid;eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];organizer=owned||co;tab=organizer?0:1;eventName=z.eventName||c;
+  code=c;myName=n;myId=auth.currentUser.uid;eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];organizer=owned||co;eventName=z.eventName||c;
   try{await setDoc(doc(fs,'tryouts',c,'evaluators',myId),{name:n,lastJoinedAt:Date.now()},{merge:true})}catch(e){stopEvent();throw e}
-  tab=organizer?0:1;scoringEvaluatorId=myId;ls('tc',c);ls('tn',n);groupSetups={};activeSetupSignature='';
+  tab=requireOwner?3:1;scoringEvaluatorId=myId;ls('tc',c);ls('tn',n);groupSetups={};activeSetupSignature='';
   function bad(){if(attempt!==connectionId)return;stopEvent();renderLogin();$('le').textContent='Could not access this event. Check the code and connection.'}
-  unsubs.push(onSnapshot(ref,function(s){if(attempt!==connectionId)return;if(!s.exists()){bad();return}var z=s.data();eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];if(removedEvaluatorUids.includes(myId)){bad();return}organizer=isOwner()||coOrganizerUids.includes(myId);eventName=z.eventName||c;xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};sessionWeightSetups=z.sessionWeightSetups&&typeof z.sessionWeightSetups==='object'?z.sessionWeightSetups:{};scoringTemplates=z.scoringTemplates&&typeof z.scoringTemplates==='object'?z.scoringTemplates:{};legacySetup={criteria:cleanCriteria(z.criteria),weights:z.weights,categorySources:z.categorySources||{}};groupSetups=z.groupSetups&&typeof z.groupSetups==='object'?z.groupSetups:{};playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
+  unsubs.push(onSnapshot(ref,function(s){if(attempt!==connectionId)return;if(!s.exists()){bad();return}var z=s.data();eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];if(removedEvaluatorUids.includes(myId)){bad();return}organizer=isOwner()||coOrganizerUids.includes(myId);eventName=z.eventName||c;xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};sessionWeightSetups=z.sessionWeightSetups&&typeof z.sessionWeightSetups==='object'?z.sessionWeightSetups:{};legacySetup={criteria:cleanCriteria(z.criteria),weights:z.weights,categorySources:z.categorySources||{}};groupSetups=z.groupSetups&&typeof z.groupSetups==='object'?z.groupSetups:{};playerDisplay=['number','name','both'].includes(z.playerDisplay)?z.playerDisplay:(z.showPlayerNames?'both':'number');var oSM=SM;SM=cleanMax(z.scoreMax);if(oSM!==SM)draft={};render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){if(attempt!==connectionId)return;players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){if(attempt!==connectionId)return;scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'evaluators'),function(s){if(attempt!==connectionId)return;evaluators=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});if(tab===3)renderSetup()},bad));
@@ -638,11 +556,11 @@ function bindManagePlayers(){
 }
 function renderRosterManagement(){
  if(!isOrganizer()){tab=1;render();return}
- var gl=groups();$('v').innerHTML='<div class="card"><h2 class="intro">Roster Management</h2><p class="mut">Organizer only · Import, assign, edit, and remove players here. Player-name display and privacy rules remain controlled in Settings.</p><label for="rosterGroupSelect">Group for manual player entry</label><select id="rosterGroupSelect">'+(gl.length?'':'<option value="">Create a group in Settings first</option>')+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select></div>'+addPlayersCard()+csvImportCard()+assignmentCard()+managePlayersCard();
+ var gl=groups();$('v').innerHTML='<div class="card"><h2 class="intro">Roster Management</h2><p class="mut">Organizer only · Import, assign, edit, and remove players here. Player-name display and privacy rules remain controlled in Settings.</p><label for="rosterGroupSelect">Group for manual player entry</label><select id="rosterGroupSelect">'+(gl.length?'':'<option value="">Create a group in Settings first</option>')+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select></div>'+addPlayersCard()+rosterDisplayCard()+csvImportCard()+assignmentCard()+managePlayersCard();
  $('rosterGroupSelect').onchange=function(){grp=this.value;ls('tg',grp);day=null;sel=null;open=null;render()};bindAdd();bindRosterImport();bindAssignment();bindManagePlayers();
 }
 
-$('t0').onclick=function(){if(isOrganizer()){tab=0;render()}};$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t4').onclick=function(){if(isOrganizer()){tab=4;render()}};
+$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t4').onclick=function(){if(isOrganizer()){tab=4;render()}};
 $('t3').onclick=function(){if(isOrganizer()){tab=3;setupDraft=null;render()}};
 $('leaveEvent').onclick=function(){stopEvent();renderLogin()};
 $('signOutBtn').onclick=async function(){stopEvent();await signOut(auth);renderLogin()};
