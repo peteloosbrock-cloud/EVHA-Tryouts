@@ -403,6 +403,7 @@ function renderOrganizerDashboard(){
  h+='<div class="card"><div class="row"><b>Event readiness</b><span class="pill">'+finished+' of '+complete.length+' complete</span></div><div class="dashTrack"><span style="width:'+percent+'%"></span></div><p class="mut">Use this checklist to finish setup. You can complete the steps in any order.</p>';
  tasks.forEach(function(t,i){h+='<div class="dashTask"><span class="'+(complete[i]?'dashDone':'dashPending')+'">'+(complete[i]?'✓':'○')+'</span><span>'+esc(t[0])+'</span><button data-dash-tab="'+t[1]+'">'+(complete[i]?'Review':'Open')+'</button></div>'});
  h+='</div><div class="card"><b>Quick actions</b><div class="dashActions"><button data-dash-tab="4">Manage players</button><button data-dash-tab="3">Event settings</button><button data-dash-tab="1">Evaluation scoring</button><button data-dash-tab="2">View leaderboard</button><button id="dashShare" class="pri">Share event</button></div></div>';
+ h+=adminToolsCard();
  if(unassigned)h+='<div class="card"><b>Needs attention</b><p class="mut">'+unassigned+' player(s) are not assigned to a group.</p><button data-dash-tab="4">Assign players</button></div>';
  $('v').innerHTML=h;
  document.querySelectorAll('[data-dash-tab]').forEach(function(b){b.onclick=function(){tab=Number(this.dataset.dashTab);if(tab===3)setupDraft=null;render()}});
