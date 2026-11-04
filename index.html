@@ -40,6 +40,7 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 @media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
 
 .board-actions{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin:0 auto 8px}.board-actions button{min-width:150px}
+.checkin-yn{font-weight:800;color:var(--ac);text-align:center!important}.checkin-roster-row{cursor:pointer}.checkin-roster-row:hover{background:var(--bg)}
 dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;border:1px solid var(--bd);border-radius:18px;padding:22px;color:var(--tx);background:var(--card)}dialog::backdrop{background:#0c2139aa}dialog h2{font-size:20px;margin:0 0 12px}input[type=checkbox]{width:22px;min-height:22px;margin:0;accent-color:var(--ac)}[hidden]{display:none!important}.shareActions{display:flex;flex-wrap:wrap;gap:10px}.shareButton{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-weight:600;text-decoration:none} .tabs{flex-wrap:wrap}.tabs button{flex:1 1 150px} 
 /* Opening logo: trace the existing pathway from start to destination. */
 .pathway-splash{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 35%,#153e50 0%,#0c2139 65%);color:#fff;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom));opacity:1;transition:opacity .35s ease;}
@@ -80,7 +81,7 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="t5">Admin Dashboard</button><button id="signOutBtn">Sign out</button></div>
 <div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button></div>
-<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v5.9</footer>
+<div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v6.0</footer>
 </main>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -97,13 +98,14 @@ const firebaseConfig = {
 };
 // =======================================================================
 
-var auth=null,organizer=false,eventName='',eventLocked=false,loginMode='evaluator',connectionId=0;
+var auth=null,organizer=false,eventName='',eventLocked=false,loginMode='evaluator',connectionId=0,checkInOnly=false;
 var eventOwnerUid='',coOrganizerUids=[],removedEvaluatorUids=[],evaluators=[],scoringEvaluatorId=null;
+var checkInRows=[],checkInUnsub=null,checkInBusy={},checkInCode='';
 function isOwner(){return !!auth.currentUser&&auth.currentUser.uid===eventOwnerUid}
 function isOrganizer(){return !!organizer&&!!auth.currentUser}
 function normalizeCode(c){return c.trim().toUpperCase()}
 function validCode(c){return /^[A-Z0-9][A-Z0-9-]{3,23}$/.test(c)}
-function stopEvent(){scoringEvaluatorId=null;rosterImport={rows:[],errors:[],message:"",busy:false,loading:false};eventOwnerUid='';coOrganizerUids=[];removedEvaluatorUids=[];evaluators=[];eventLocked=false;connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};sessionWeightSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
+function stopEvent(){scoringEvaluatorId=null;rosterImport={rows:[],errors:[],message:"",busy:false,loading:false};if(checkInUnsub){checkInUnsub();checkInUnsub=null}checkInRows=[];checkInBusy={};checkInOnly=false;checkInCode='';eventOwnerUid='';coOrganizerUids=[];removedEvaluatorUids=[];evaluators=[];eventLocked=false;connectionId++;unsubs.forEach(function(u){u()});unsubs=[];code=null;myId=null;organizer=false;eventName='';xg=[];xd={};grp=null;day=null;bday='all';groupSetups={};sessionWeightSetups={};legacySetup={criteria:DEFAULT_C.slice(),weights:equalWeights(DEFAULT_C),categorySources:{}};SM=10;players=[];scores=[];tab=1;sel=null;open=null;draft={};nd={};setupDraft=null;$('accountBar').style.display='none'}
 function assertEventUnlocked(){if(eventLocked)throw Error('This event is locked. An organizer must unlock it before making changes.');}
 function authError(e){return e.code==='auth/operation-not-allowed'?'Enable Email/Password and Anonymous sign-in in Firebase first.':e.code==='auth/email-already-in-use'?'This email already has an account. Choose Sign in.':e.code==='auth/weak-password'?'Choose a stronger password (at least 6 characters).':e.code==='permission-denied'?'Access denied. Check the Firebase rules and event ownership.':e.code==='auth/too-many-requests'?'Too many attempts. Please try again later.':'Could not complete this action. Check your details and connection.'}
 var DEFAULT_C=['Skating','Hockey IQ','Compete Level','Puck Skills'];
@@ -124,7 +126,9 @@ function cleanCriteria(a){var out=[];(a||[]).forEach(function(x){x=String(x||'')
 function equalWeights(a){var out={},base=Math.floor(100/a.length),left=100-base*a.length;a.forEach(function(c,i){out[c]=base+(i<left?1:0)});return out}
 function cleanWeights(raw,a){var out={},sum=0;a.forEach(function(c){var n=Number(raw&&raw[c]);if(isFinite(n)&&n>=0){out[c]=n;sum+=n}});return Math.abs(sum-100)<0.001?out:equalWeights(a)}
 function eventRef(){return doc(fs,'tryouts',code)}
-async function deleteEventCollection(c,name){var ref=collection(fs,'tryouts',c,name);while(true){var snap=await getDocs(ref);if(snap.empty)return;for(var i=0;i<snap.docs.length;i+=450){var batch=writeBatch(fs);snap.docs.slice(i,i+450).forEach(function(d){batch.delete(d.ref)});await batch.commit()}}}
+async function deleteCollection(ref){while(true){var snap=await getDocs(ref);if(snap.empty)return;for(var i=0;i<snap.docs.length;i+=450){var batch=writeBatch(fs);snap.docs.slice(i,i+450).forEach(function(d){batch.delete(d.ref)});await batch.commit()}}}
+async function deleteEventCollection(c,name){return deleteCollection(collection(fs,'tryouts',c,name))}
+async function deleteCheckInData(c){await deleteEventCollection(c,'checkInUsers');var access=await getDoc(doc(fs,'tryouts',c,'checkInSettings','access'));if(access.exists()){var oldCode=access.data().code;if(oldCode)await deleteDoc(doc(fs,'checkInCodes',oldCode));await deleteDoc(access.ref)}var snap=await getDoc(doc(fs,'tryouts',c)),data=snap.exists()?snap.data():{},names=['Session 1','Day 1'];Object.keys(data.groupDays||{}).forEach(function(g){(data.groupDays[g]||[]).forEach(function(d){if(names.indexOf(d)<0)names.push(d)})});for(var i=0;i<names.length;i++)await deleteCollection(collection(fs,'tryouts',c,'checkIns',sessionKey(names[i]),'players'))}
 var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,comparePlayerIds=[],fs=null,code=null,myId=null,myName=null,unsubs=[];
 var grp=ls('tg')||null,day=null,bday='all',xg=[],xd={};
 var $=function(i){return document.getElementById(i)};
@@ -171,7 +175,7 @@ function selCard(board,manage){
    '<div class="row" style="margin-top:8px"><select id="ds" aria-label="Evaluation session" style="margin:0">'+(board?'<option value="all"'+(bday==='all'?' selected':'')+'>All sessions (average)</option>':'')+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===(board?bday:day)?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>'+(manage?'<button id="da">+ Session</button>':'')+'</div>'+(manage?'<button id="ge" style="margin-top:12px">Edit group</button><button id="de" style="margin-top:12px">Edit session</button><div id="groupMsg" class="inlineMessage" role="status"></div><div id="sessionMsg" class="inlineMessage" role="status"></div>':'')+'</div>';
 }
 function bindSel(board){
-  $('gs').onchange=function(e){grp=e.target.value;ls('tg',grp);sel=null;open=null;comparePlayerIds=[];bday='all';render()};
+  $('gs').onchange=function(e){grp=e.target.value;day=null;ls('tg',grp);sel=null;open=null;comparePlayerIds=[];bday='all';render();if(day)watchCheckIns(day)};
   if($('ga'))$('ga').onclick=async function(){
     if(eventLocked){alert('This event is locked. Unlock it from Admin Dashboard to make changes.');return}
     var n=(prompt('New group name (e.g. 10U)')||'').trim();if(!n)return;
@@ -184,7 +188,7 @@ function bindSel(board){
   if($('ge')){$('ge').disabled=!grp;$('ge').onclick=function(){structureDialog('group')}};
   if($('de')){$('de').disabled=!grp||!day;$('de').onclick=function(){structureDialog('session')}};
   if($('da'))$('da').disabled=!grp;
-  $('ds').onchange=function(e){if(board)bday=e.target.value;else day=e.target.value;render()};
+  $('ds').onchange=function(e){if(board)bday=e.target.value;else day=e.target.value;if(day)watchCheckIns(day);render()};
   if($('da'))$('da').onclick=async function(){
     if(eventLocked){alert('This event is locked. Unlock it from Admin Dashboard to make changes.');return}
     var dl=days(),g=grp,n=(prompt('New session name',"Session "+(dl.length+1))||'').trim();if(!n)return;if(n.length>80||n.toLowerCase()==='all'){alert('Use 1–80 characters and a name other than All.');return}
@@ -228,7 +232,8 @@ async function renameGroup(old,name){
 
 function render(){
   if(!myId){renderLogin();return}
-  if((tab===3||tab===4||tab===5)&&!isOrganizer())tab=1;
+  if(checkInOnly){renderCheckIn();return}
+  if((tab===3||tab===4||tab===5||tab===6)&&!isOrganizer())tab=1;
   fixSel();applyGroupSetup();
   document.documentElement.style.setProperty('--score-count',SM);
   document.documentElement.style.setProperty('--score-columns',Math.min(SM,5));
@@ -237,18 +242,39 @@ function render(){
   var activeBy=activeScoreEvaluator(),m=gp().filter(function(p){return mine(p.id,activeBy)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   var targetLabel=activeBy===myId?'you':scoreEvaluatorName(activeBy);
   $('sub').textContent=(isOwner()?'Organizer: ':isOrganizer()?'Co-organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · '+targetLabel+' scored '+m+' of '+gp().length+' on '+day:'')+(eventLocked?' · LOCKED':'');
-  tab==5?renderAdminDashboard():tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
+  tab==5?renderAdminDashboard():tab==6?renderCheckInAccess():tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
   if(eventLocked)$('v').insertAdjacentHTML('afterbegin','<div class="card event-lock-notice" role="status"><b>🔒 Event locked</b><div class="mut">This completed event is read-only. Scores, players, and setup cannot be changed.</div></div>');
+}
+function checkInPresent(pid){return !!checkInRows.find(function(x){return x.id===pid&&x.present===true})}
+function watchCheckIns(session){
+  if(!code||!session||!myId)return;
+  if(checkInUnsub){checkInUnsub();checkInUnsub=null}
+  var event=code,key=sessionKey(session),attempt=connectionId;
+  checkInUnsub=onSnapshot(collection(fs,'tryouts',event,'checkIns',key,'players'),function(s){if(attempt!==connectionId)return;checkInRows=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});if(checkInOnly||tab===1||tab===2)render()},function(){if(attempt!==connectionId)return;checkInRows=[];if(checkInOnly||tab===1||tab===2)render()});
+}
+function renderCheckIn(){
+  $('accountBar').style.display='flex';$('t5').hidden=true;$('tabs').style.display='none';$('progress').hidden=true;
+  var gl=groups();if(gl.indexOf(grp)<0)grp=gl[0]||null;var dl=grp?(xd[grp]||['Session 1']):[];if(dl.indexOf(day)<0)day=dl[0]||null;
+  $('sub').textContent='Check-in only: '+myName+' · '+(eventName||code);
+  var roster=players.filter(function(p){return G(p)===grp}).sort(function(a,b){return nat(String(a.num||''),String(b.num||''))});
+  $('v').innerHTML='<div class="card"><h2 class="intro">Player check-in</h2><p class="mut">Mark each player present. This account only has access to the check-in roster.</p><label for="checkInGroup">Group</label><select id="checkInGroup">'+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select><label for="checkInSession">Session</label><select id="checkInSession">'+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===day?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select><p class="mut" id="checkInCount"></p><div class="tw"><table><thead><tr><th>Present</th><th>Player</th><th>Tryout #</th></tr></thead><tbody>'+roster.map(function(p){var yes=checkInPresent(p.id),busy=!!checkInBusy[p.id];return '<tr><td><button class="'+(yes?'pri':'')+'" data-checkin-player="'+esc(p.id)+'" '+(busy?'disabled':'')+'>'+(yes?'✓ Present':'Mark present')+'</button></td><td>'+esc(p.name||'—')+'</td><td>'+esc(p.num||'—')+'</td></tr>'}).join('')+'</tbody></table></div>'+(roster.length?'':'<p class="mut">No players are assigned to this group yet.</p>')+'<p class="inlineMessage" id="checkInMessage" role="status"></p></div>';
+  var count=roster.filter(function(p){return checkInPresent(p.id)}).length;$('checkInCount').textContent=count+' of '+roster.length+' players checked in for '+(day||'this session');
+  $('checkInGroup').onchange=function(){grp=this.value;day=(xd[grp]||['Session 1'])[0]||null;watchCheckIns(day);render()};$('checkInSession').onchange=function(){day=this.value;watchCheckIns(day);render()};
+  document.querySelectorAll('[data-checkin-player]').forEach(function(b){b.onclick=async function(){var pid=b.dataset.checkinPlayer,next=!checkInPresent(pid),event=code,session=day;checkInBusy[pid]=true;render();var message='';try{await setDoc(doc(fs,'tryouts',event,'checkIns',sessionKey(session),'players',pid),{player:pid,present:next,by:myId,updatedAt:Date.now()});message=next?'Player marked present ✓':'Check-in updated'}catch(e){message='Could not save check-in. Check Firestore rules and try again.'}finally{checkInBusy[pid]=false;if(checkInOnly){render();if($('checkInMessage'))$('checkInMessage').textContent=message}}}});
 }
 function renderLogin(){
   $('tabs').style.display='none';$('accountBar').style.display='none';$('progress').hidden=true;$('sub').textContent='';
   var signed=auth&&auth.currentUser&&!auth.currentUser.isAnonymous;
-  $('v').innerHTML='<div class="card"><h2 class="intro">Welcome to Pathway Evals</h2><div class="row"><button id="evalMode" class="'+(loginMode==='evaluator'?'pri':'')+'">Join as evaluator</button><button id="orgMode" class="'+(loginMode==='organizer'?'pri':'')+'">Organizer</button></div><div id="loginBody" style="margin-top:16px"></div><div class="inlineMessage" id="le" role="status"></div></div>';
-  $('evalMode').onclick=function(){loginMode='evaluator';renderLogin()};$('orgMode').onclick=function(){loginMode='organizer';renderLogin()};
+  $('v').innerHTML='<div class="card"><h2 class="intro">Welcome to Pathway Evals</h2><div class="row"><button id="evalMode" class="'+(loginMode==='evaluator'?'pri':'')+'">Join as evaluator</button><button id="checkInMode" class="'+(loginMode==='checkin'?'pri':'')+'">Player check-in</button><button id="orgMode" class="'+(loginMode==='organizer'?'pri':'')+'">Organizer</button></div><div id="loginBody" style="margin-top:16px"></div><div class="inlineMessage" id="le" role="status"></div></div>';
+  $('evalMode').onclick=function(){loginMode='evaluator';renderLogin()};$('checkInMode').onclick=function(){loginMode='checkin';renderLogin()};$('orgMode').onclick=function(){loginMode='organizer';renderLogin()};
   if(loginMode==='evaluator'){
     $('loginBody').innerHTML='<label for="lc">Event code</label><input id="lc" placeholder="Code from your organizer" autocapitalize="characters" maxlength="24"><label for="ln">Your name or initials</label><input id="ln" placeholder="e.g. Coach Mike" maxlength="80"><div class="mut">Use this same browser to return to your saved scores.</div><button class="pri" id="lg" style="width:100%;margin-top:14px">Join event</button>';
     $('lc').value=sharedEventCode()||ls('tc')||'';$('ln').value=ls('tn')||'';
     $('lg').onclick=async function(){var c=normalizeCode($('lc').value),n=$('ln').value.trim();if(!c||!n){$('le').textContent='Enter your event code and name.';return}this.disabled=true;try{await start(c,n)}catch(e){if($('le'))$('le').textContent=authError(e)}finally{if($('lg'))$('lg').disabled=false}};
+  }else if(loginMode==='checkin'){
+    $('loginBody').innerHTML='<label for="cc">Check-in code</label><input id="cc" placeholder="Code from your organizer" autocapitalize="characters" maxlength="20"><label for="cn">Your name</label><input id="cn" placeholder="e.g. Check-in volunteer" maxlength="80"><p class="mut">Check-in access only. This view does not include evaluations or scores.</p><button class="pri" id="joinCheckIn" style="width:100%;margin-top:10px">Open check-in</button>';
+    $('cc').value=ls('checkin-code')||'';$('cn').value=ls('checkin-name')||'';
+    $('joinCheckIn').onclick=async function(){var invite=$('cc').value.trim().toUpperCase(),n=$('cn').value.trim();if(!invite||!n){$('le').textContent='Enter your check-in code and name.';return}this.disabled=true;try{await startCheckIn(invite,n);ls('checkin-name',n);ls('checkin-code',invite)}catch(e){if($('le'))$('le').textContent='Could not open check-in. Check the check-in code and Firestore rules.'}finally{if($('joinCheckIn'))$('joinCheckIn').disabled=false}};
   }else if(!signed){
     $('loginBody').innerHTML='<div class="mut">Create an organizer account to set up events, or sign in to manage your events.</div><label for="oe">Email</label><input id="oe" type="email" autocomplete="email"><label for="op">Password</label><input id="op" type="password" autocomplete="current-password" minlength="6"><div class="row"><button class="pri" id="osi">Sign in</button><button id="osu">Create account</button></div><button id="resetPassword" style="margin-top:12px">Reset password</button>';
     async function account(create){var email=$('oe').value.trim(),password=$('op').value;if(!email||!password){$('le').textContent='Enter your email and password.';return}$('osi').disabled=$('osu').disabled=true;try{await (create?createUserWithEmailAndPassword(auth,email,password):signInWithEmailAndPassword(auth,email,password));renderLogin()}catch(e){$('le').textContent=authError(e);$('osi').disabled=$('osu').disabled=false}}
@@ -342,12 +368,13 @@ function renderScore(){
     if(!targetRows.some(function(e){return e.id===targetId})){targetId=myId;scoringEvaluatorId=myId;targetName=scoreEvaluatorName(myId)}
     h+='<div class="card"><label for="scoreEvaluator">Enter scores for evaluator</label><select id="scoreEvaluator" style="margin:0">'+targetRows.map(function(e){return '<option value="'+esc(e.id)+'"'+(e.id===targetId?' selected':'')+'>'+esc(e.name||'Unnamed evaluator')+(e.id===myId?' (you)':'')+'</option>'}).join('')+'</select><div class="mut" style="margin-top:6px">Scores are attributed to the selected evaluator. Your account is recorded as the person who entered them.</div></div>';
   }
-  h+='<div class="card"><label for="ps">Player to evaluate</label><select id="ps" style="margin:0">'+sp.map(function(p){return '<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lab(p)+(mine(p.id,targetId)?' ✓':'')+'</option>'}).join('')+'</select></div>';
+  h+='<div class="card"><label for="ps">Player to evaluate</label><select id="ps" style="margin:0">'+sp.map(function(p){return '<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lab(p)+(mine(p.id,targetId)?' ✓':'')+'</option>'}).join('')+'</select><div class="tw" style="margin-top:12px"><table><thead><tr><th>Checked In</th><th>Player</th><th>Tryout #</th></tr></thead><tbody>'+sp.map(function(p){return '<tr class="checkin-roster-row" data-score-player="'+esc(p.id)+'"><td class="checkin-yn">'+(checkInPresent(p.id)?'Y':'N')+'</td><td>'+esc(p.name||'—')+'</td><td>'+esc(p.num||'—')+'</td></tr>'}).join('')+'</tbody></table></div></div>';
   var m=mine(sel,targetId),dk=sel+'|'+day+'|'+targetId;if(!draft[dk])draft[dk]=mv(m);
   var d=draft[dk];if(nd[dk]===undefined)nd[dk]=m&&m.note?m.note:'';
   h+='<div class="card">'+C.map(function(c){return '<div class="crit"><b>'+esc(c)+'</b><div class="sc">'+scale().map(function(n){return '<button data-c="'+esc(c)+'" data-n="'+n+'" class="'+(d[c]===n?'on':'')+'">'+n+'</button>'}).join('')+'</div></div>'}).join('')+
    '<div class="crit"><b>Comments (optional)</b><textarea id="nt" rows="3" maxlength="10000" placeholder="Strengths, concerns, position notes…">'+esc(nd[dk])+'</textarea></div><div class="mut">1 = needs work · '+Math.ceil(SM/2)+' = solid · '+SM+' = standout</div><button class="pri" id="sv" style="width:100%;margin-top:10px"'+(C.every(function(c){return d[c]})?'':' disabled')+'>'+(m?'Update '+esc(targetName)+'’s score':'Save '+esc(targetName)+'’s score')+'</button></div>';
   $('v').innerHTML=h;bindSel(false);
+  document.querySelectorAll('[data-score-player]').forEach(function(r){r.onclick=function(){sel=r.dataset.scorePlayer;render()}});
   if(eventLocked){document.querySelectorAll('.sc button').forEach(function(b){b.disabled=true});$('nt').disabled=true;$('sv').disabled=true;$('sv').textContent='Event locked'}
   $('nt').oninput=function(e){nd[dk]=e.target.value};
   if($('scoreEvaluator'))$('scoreEvaluator').onchange=function(e){scoringEvaluatorId=e.target.value;render()};
@@ -367,9 +394,16 @@ function renderScore(){
 
 function renderAdminDashboard(){
   if(!isOrganizer()){tab=1;render();return}
-  $('v').innerHTML='<div class="card"><h2 class="intro">Admin Dashboard</h2><p class="mut">Organizer hub for '+esc(eventName||code)+'. Review the event and open the areas you manage.</p><div class="dashboardStats"><div><strong>'+players.length+'</strong><span>Players</span></div><div><strong>'+scores.length+'</strong><span>Evaluations</span></div><div><strong>'+evaluators.length+'</strong><span>Evaluators</span></div><div><strong>'+groups().length+'</strong><span>Groups</span></div></div></div><div class="card"><b>Event status</b><p class="mut">'+(eventLocked?'This event is locked. Evaluators and organizers can review results, but cannot change scores, players, or setup.':'Lock the event when evaluations are complete. This makes scores, players, and setup read-only.')+'</p><button class="'+(eventLocked?'':'danger')+'" id="toggleEventLock">'+(eventLocked?'Unlock event':'Lock completed event')+'</button><div class="inlineMessage" id="lockMessage" role="status"></div></div><div class="card"><b>Manage event</b><p class="mut">Manage the roster or update event setup.</p><div class="dashboardLinks"><button class="pri" id="dashboardRoster">Roster Management</button><button id="dashboardSettings">Settings</button></div></div>';
-  $('dashboardRoster').onclick=function(){tab=4;render()};$('dashboardSettings').onclick=function(){tab=3;setupDraft=null;render()};
+  $('v').innerHTML='<div class="card"><h2 class="intro">Admin Dashboard</h2><p class="mut">Organizer hub for '+esc(eventName||code)+'. Review the event and open the areas you manage.</p><div class="dashboardStats"><div><strong>'+players.length+'</strong><span>Players</span></div><div><strong>'+scores.length+'</strong><span>Evaluations</span></div><div><strong>'+evaluators.length+'</strong><span>Evaluators</span></div><div><strong>'+groups().length+'</strong><span>Groups</span></div></div></div><div class="card"><b>Event status</b><p class="mut">'+(eventLocked?'This event is locked. Evaluators and organizers can review results, but cannot change scores, players, or setup.':'Lock the event when evaluations are complete. This makes scores, players, and setup read-only.')+'</p><button class="'+(eventLocked?'':'danger')+'" id="toggleEventLock">'+(eventLocked?'Unlock event':'Lock completed event')+'</button><div class="inlineMessage" id="lockMessage" role="status"></div></div><div class="card"><b>Manage event</b><p class="mut">Manage the roster, check-in access, or event setup.</p><div class="dashboardLinks"><button class="pri" id="dashboardRoster">Roster Management</button><button id="dashboardSettings">Settings</button><button id="dashboardCheckIn">Check-in Access</button></div></div>';
+  $('dashboardRoster').onclick=function(){tab=4;render()};$('dashboardSettings').onclick=function(){tab=3;setupDraft=null;render()};$('dashboardCheckIn').onclick=openCheckInAccess;
   $('toggleEventLock').onclick=async function(){if(!isOrganizer())return;var next=!eventLocked;if(next&&!confirm('Lock '+(eventName||code)+'? Evaluators and organizers will be unable to change scores, players, or event setup until an organizer unlocks it.'))return;var b=this;b.disabled=true;$('lockMessage').textContent=next?'Locking event…':'Unlocking event…';var activeCode=code,actor=myId;try{await runTransaction(fs,async function(tx){var ref=doc(fs,'tryouts',activeCode),snap=await tx.get(ref),data=snap.data();if(!data||!(data.ownerUid===actor||(Array.isArray(data.coOrganizerUids)&&data.coOrganizerUids.includes(actor))))throw Error('organizer-required');tx.update(ref,{locked:next,lockedAt:next?Date.now():null,lockedBy:next?actor:null})});if(code===activeCode){eventLocked=next;render()}}catch(e){if(code===activeCode&&$('lockMessage')){console.error('Event lock update failed:',e);var detail=e&&((e.code&&e.code+': ')||'')+(e.message||'');$('lockMessage').textContent='Could not change the event lock'+(detail?' ('+detail+')':'')+'. Confirm the updated Firestore rules are published and that you are signed in as an organizer.';b.disabled=false}}};
+}
+async function openCheckInAccess(){if(!isOrganizer())return;tab=6;checkInCode='';render();try{var s=await getDoc(doc(fs,'tryouts',code,'checkInSettings','access'));if(code&&s.exists())checkInCode=s.data().code||'';if(tab===6)render()}catch(e){if($('checkInAccessMessage'))$('checkInAccessMessage').textContent='Could not load check-in settings. Check Firebase rules and retry.'}}
+function renderCheckInAccess(){
+ if(!isOrganizer()){tab=1;render();return}
+ $('v').innerHTML='<div class="card"><h2 class="intro">Check-in Access</h2><p class="mut">Create a separate code for check-in volunteers. Share this code with people who will mark players present. It does not grant evaluation access.</p><label for="checkInCodeDisplay">Check-in code</label><input id="checkInCodeDisplay" value="'+esc(checkInCode||'No code created yet')+'" readonly><div class="row"><button class="pri" id="generateCheckInCode">'+(checkInCode?'Replace check-in code':'Generate check-in code')+'</button>'+(checkInCode?'<button id="copyCheckInCode">Copy code</button>':'')+'</div><p class="inlineMessage" id="checkInAccessMessage" role="status"></p></div>';
+ $('generateCheckInCode').onclick=async function(){if(!isOrganizer())return;if(checkInCode&&!confirm('Replace the current check-in code? The old code will stop working.'))return;var alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',invite='CI-'+Array.from(crypto.getRandomValues(new Uint8Array(12)),function(n){return alphabet[n%alphabet.length]}).join(''),old=checkInCode,batch=writeBatch(fs);batch.set(doc(fs,'checkInCodes',invite),{event:code,createdAt:Date.now()});batch.set(doc(fs,'tryouts',code,'checkInSettings','access'),{code:invite,updatedAt:Date.now()},{merge:true});if(old)batch.delete(doc(fs,'checkInCodes',old));this.disabled=true;try{await batch.commit();checkInCode=invite;renderCheckInAccess();$('checkInAccessMessage').textContent='New check-in code created. Share it with check-in volunteers.'}catch(e){this.disabled=false;$('checkInAccessMessage').textContent='Could not save the check-in code. Check Firestore rules and retry.'}};
+ if($('copyCheckInCode'))$('copyCheckInCode').onclick=async function(){try{await navigator.clipboard.writeText(checkInCode);$('checkInAccessMessage').textContent='Check-in code copied.'}catch(e){$('checkInAccessMessage').textContent='Copy is unavailable. Select and copy the code above.'}};
 }
 function renderSetup(){
   if(!isOrganizer()){tab=1;render();return}
@@ -384,7 +418,7 @@ function renderSetup(){
   bindEvaluators();bindSel(false);bindSessionWeights();$('shareEvent').onclick=shareEventDialog;if(!grp){$('cs').disabled=true;$('cm').textContent='Create a group before saving evaluation setup.'}
   $('copyCode').onclick=async function(){try{await navigator.clipboard.writeText(code);$('eventMsg').textContent='Event code copied ✓'}catch(e){$('eventMsg').textContent='Event code: '+code}};
   $('renameEvent').onclick=async function(){if(eventLocked)return;var n=prompt('Event name',eventName||code);if(n===null)return;n=n.trim();if(!n||n.length>100){$('eventMsg').textContent='Enter a name of 1–100 characters.';return}try{await setDoc(eventRef(),{eventName:n},{merge:true})}catch(e){$('eventMsg').textContent='Could not save the event name.'}};
-  if($('deleteEvent'))$('deleteEvent').onclick=async function(){if(!isOwner()){ $('eventMsg').textContent='Only the event owner can delete this event.';return }var c=code,name=eventName||code,deleteStep='checking event';try{var current=await getDoc(doc(fs,'tryouts',c));if(!current.exists()||current.data().ownerUid!==auth.currentUser.uid){$('eventMsg').textContent='This event is no longer available to your account.';return}if(!confirm('Permanently delete “'+name+'” ('+c+') and all of its players, scores, evaluator access, and setup? Separate team data, if any, will remain. This cannot be undone.'))return;var phrase=(prompt('To confirm, type the event code '+c+'.')||'').trim().toUpperCase();if(phrase!==c){$('eventMsg').textContent='Deletion cancelled. The event code did not match.';return}var button=$('deleteEvent');button.disabled=true;button.textContent='Deleting…';$('eventMsg').textContent='Removing event data…';deleteStep='scores';await deleteEventCollection(c,'scores');deleteStep='players';await deleteEventCollection(c,'players');deleteStep='evaluator access';await deleteEventCollection(c,'evaluators');deleteStep='event record';await deleteDoc(doc(fs,'tryouts',c));stopEvent();renderLogin()}catch(e){var button=$('deleteEvent');if(button){button.disabled=false;button.textContent='Delete event'}if($('eventMsg'))$('eventMsg').textContent='Could not finish deleting this event while removing '+deleteStep+(e&&e.code?' ('+e.code+')':'')+'. Some data may already be removed; retry deletion or check the Firebase rules.'}};
+  if($('deleteEvent'))$('deleteEvent').onclick=async function(){if(!isOwner()){ $('eventMsg').textContent='Only the event owner can delete this event.';return }var c=code,name=eventName||code,deleteStep='checking event';try{var current=await getDoc(doc(fs,'tryouts',c));if(!current.exists()||current.data().ownerUid!==auth.currentUser.uid){$('eventMsg').textContent='This event is no longer available to your account.';return}if(!confirm('Permanently delete “'+name+'” ('+c+') and all of its players, scores, check-in records, evaluator access, and setup? Separate team data, if any, will remain. This cannot be undone.'))return;var phrase=(prompt('To confirm, type the event code '+c+'.')||'').trim().toUpperCase();if(phrase!==c){$('eventMsg').textContent='Deletion cancelled. The event code did not match.';return}var button=$('deleteEvent');button.disabled=true;button.textContent='Deleting…';$('eventMsg').textContent='Removing event data…';deleteStep='check-in records';await deleteCheckInData(c);deleteStep='scores';await deleteEventCollection(c,'scores');deleteStep='players';await deleteEventCollection(c,'players');deleteStep='evaluator access';await deleteEventCollection(c,'evaluators');deleteStep='event record';await deleteDoc(doc(fs,'tryouts',c));stopEvent();renderLogin()}catch(e){var button=$('deleteEvent');if(button){button.disabled=false;button.textContent='Delete event'}if($('eventMsg'))$('eventMsg').textContent='Could not finish deleting this event while removing '+deleteStep+(e&&e.code?' ('+e.code+')':'')+'. Some data may already be removed; retry deletion or check the Firebase rules.'}};
   function collect(){document.querySelectorAll('.cn').forEach(function(el,i){sd.items[i].name=el.value});document.querySelectorAll('.cw').forEach(function(el,i){sd.items[i].weight=Number(el.value)});sd.max=+$('sm').value;var t=sd.items.reduce(function(a,c){return a+c.weight},0);$('wt').textContent='Total: '+t+'%';$('wt').className='pill'+(t===100?'':' warn')}
   document.querySelectorAll('.cn,.cw').forEach(function(el){el.oninput=collect});$('sm').onchange=collect;collect();
   function equal(){var w=equalWeights(sd.items.map(function(_,i){return String(i)}));sd.items.forEach(function(c,i){c.weight=w[String(i)]})}
@@ -465,18 +499,18 @@ function renderBoard(){
   var h=selCard(true)+'<div class="board-actions"><button id="comparePlayers">Compare players</button><button id="ex">Export CSV</button></div>';
   $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;
   if(!rows.length){$('v').innerHTML=h+'<div class="card mut">No players in '+esc(grp)+' yet.</div>';bindSel(true);$('ex').onclick=function(){};return}
-  h+='<div class="card tw"><table><tr><th>#</th><th>Player / number</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Sessions</th>'+C.map(function(c){return '<th class="n">'+esc(shortName(c))+'</th>'}).join('')+'</tr>';
+  h+='<div class="card tw"><table><tr><th>Checked In</th><th>#</th><th>Player / number</th><th class="n">Avg</th><th class="n">Evals</th><th class="n">Sessions</th>'+C.map(function(c){return '<th class="n">'+esc(shortName(c))+'</th>'}).join('')+'</tr>';
   rows.forEach(function(r,i){
     var s=r.s;
-    h+='<tr class="p" data-id="'+r.p.id+'"><td class="mut">'+(i+1)+'</td><td>'+lab(r.p)+(s.spread>=3*SM/10?' <span class="warn" title="Evaluators disagree">⚠</span>':'')+'</td><td class="n big">'+(s.n?f(s.avg):'–')+'</td><td class="n">'+s.n+'</td><td class="n">'+s.days+'</td>'+s.per.map(function(x){return '<td class="n">'+(s.n?f(x):'–')+'</td>'}).join('')+'</tr>';
-    if(open===r.p.id)h+='<tr><td></td><td colspan="'+(4+C.length)+'">'+(s.e.slice().sort(function(a,b){return nat(D(a),D(b))}).map(function(e){return '<div class="mut">'+esc(D(e))+' · '+esc(e.who||e.by)+(e.enteredBy&&e.enteredBy!==e.by?' · entered by '+esc(scoreEvaluatorName(e.enteredBy)):'')+': <b>'+f(evalOverall(e))+'</b> ('+C.map(function(c){return Math.round(sv(e,c)*10)/10}).join('/')+')'+(e.note?'<div style="color:var(--tx);white-space:normal;margin:2px 0 8px">“'+esc(e.note)+'”</div>':'')+'</div>'}).join('')||'<div class="mut">No scores yet</div>')+'</td></tr>';
+    h+='<tr class="p" data-id="'+r.p.id+'"><td class="checkin-yn">'+(checkInPresent(r.p.id)?'Y':'N')+'</td><td class="mut">'+(i+1)+'</td><td>'+lab(r.p)+(s.spread>=3*SM/10?' <span class="warn" title="Evaluators disagree">⚠</span>':'')+'</td><td class="n big">'+(s.n?f(s.avg):'–')+'</td><td class="n">'+s.n+'</td><td class="n">'+s.days+'</td>'+s.per.map(function(x){return '<td class="n">'+(s.n?f(x):'–')+'</td>'}).join('')+'</tr>';
+    if(open===r.p.id)h+='<tr><td></td><td colspan="'+(5+C.length)+'">'+(s.e.slice().sort(function(a,b){return nat(D(a),D(b))}).map(function(e){return '<div class="mut">'+esc(D(e))+' · '+esc(e.who||e.by)+(e.enteredBy&&e.enteredBy!==e.by?' · entered by '+esc(scoreEvaluatorName(e.enteredBy)):'')+': <b>'+f(evalOverall(e))+'</b> ('+C.map(function(c){return Math.round(sv(e,c)*10)/10}).join('/')+')'+(e.note?'<div style="color:var(--tx);white-space:normal;margin:2px 0 8px">“'+esc(e.note)+'”</div>':'')+'</div>'}).join('')||'<div class="mut">No scores yet</div>')+'</td></tr>';
   });
   h+='</table></div><div class="mut">Tap a row to see each evaluator. ⚠ = evaluators differ by '+(Math.round(SM*3)/10)+'+ points overall in the same session.</div>';
   $('v').innerHTML=h;bindSel(true);$('comparePlayers').onclick=compareDialog;
   Array.prototype.forEach.call(document.querySelectorAll('tr.p'),function(t){t.onclick=function(){open=open===t.dataset.id?null:t.dataset.id;render()}});
   $('ex').onclick=function(){
     var q=function(x){return '"'+String(x).replace(/"/g,'""')+'"'};
-    var csv=[['Rank','Group','Player / number','Weighted Average','Evaluations','Sessions'].concat(C.map(function(c){return c+' ('+(W[c]||0)+'%)'})).concat(['Comments']).map(q).join(',')].concat(rows.map(function(r,i){return [i+1,q(grp),q(playerText(r.p)),f(r.s.avg),r.s.n,r.s.days].concat(r.s.per.map(f)).concat([q(r.s.e.filter(function(e){return e.note}).map(function(e){return (e.who||e.by)+' ('+D(e)+'): '+e.note}).join(' | '))]).join(',')})).join('\n');
+    var csv=[['Checked In','Rank','Group','Player / number','Weighted Average','Evaluations','Sessions'].concat(C.map(function(c){return c+' ('+(W[c]||0)+'%)'})).concat(['Comments']).map(q).join(',')].concat(rows.map(function(r,i){return [checkInPresent(r.p.id)?'Y':'N',i+1,q(grp),q(playerText(r.p)),f(r.s.avg),r.s.n,r.s.days].concat(r.s.per.map(f)).concat([q(r.s.e.filter(function(e){return e.note}).map(function(e){return (e.who||e.by)+' ('+D(e)+'): '+e.note}).join(' | '))]).join(',')})).join('\n');
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='pathway-evals-'+slug(grp)+(bday==='all'?'-all-sessions':'-'+slug(bday))+'.csv';a.click();
   };
 }
@@ -498,6 +532,17 @@ function bindEvaluators(){
  }});
 }
 
+async function startCheckIn(invite,n){
+  await auth.authStateReady();if(!auth.currentUser)await signInAnonymously(auth);
+  var invitation=await getDoc(doc(fs,'checkInCodes',invite));if(!invitation.exists())throw Error('invalid-checkin-code');var c=invitation.data().event;if(typeof c!=='string'||!validCode(c))throw Error('invalid-checkin-code');
+  var uid=auth.currentUser.uid;
+  stopEvent();var attempt=connectionId;code=c;myId=uid;myName=n;checkInOnly=true;organizer=false;eventOwnerUid='';eventName=c;
+  try{await setDoc(doc(fs,'tryouts',c,'checkInUsers',uid),{name:n,lastJoinedAt:Date.now(),code:invite},{merge:true})}catch(e){stopEvent();throw e}
+  function bad(){if(attempt!==connectionId)return;stopEvent();renderLogin();if($('le'))$('le').textContent='Could not access check-in. Check the event code and connection.'}
+  unsubs.push(onSnapshot(doc(fs,'tryouts',c),function(s){if(attempt!==connectionId)return;if(!s.exists()){bad();return}var z=s.data();eventName=z.eventName||c;xg=Array.isArray(z.groups)?z.groups.filter(function(g){return typeof g==='string'}):[];xd=z.groupDays&&typeof z.groupDays==='object'?z.groupDays:{};if(!grp)grp=xg[0]||null;if(grp&&!day)day=(xd[grp]||['Session 1'])[0]||null;if(day)watchCheckIns(day);render()},bad));
+  unsubs.push(onSnapshot(collection(fs,'tryouts',c,'players'),function(s){if(attempt!==connectionId)return;players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
+  render();
+}
 async function start(c,n,requireOwner){
   await auth.authStateReady();
   if(!auth.currentUser)await signInAnonymously(auth);
@@ -506,7 +551,7 @@ async function start(c,n,requireOwner){
   var z=snapshot.data(),owned=z.ownerUid===auth.currentUser.uid,co=(z.coOrganizerUids||[]).includes(auth.currentUser.uid);
   if((z.removedEvaluatorUids||[]).includes(auth.currentUser.uid))throw Error('permission-denied');
   if(requireOwner&&!owned&&!co)throw new Error('not-owner');
-  stopEvent();var attempt=connectionId;
+  stopEvent();var attempt=connectionId;checkInOnly=false;
   code=c;myName=n;myId=auth.currentUser.uid;eventOwnerUid=z.ownerUid;coOrganizerUids=z.coOrganizerUids||[];removedEvaluatorUids=z.removedEvaluatorUids||[];organizer=owned||co;eventName=z.eventName||c;eventLocked=z.locked===true;
   if(!eventLocked){try{await setDoc(doc(fs,'tryouts',c,'evaluators',myId),{name:n,lastJoinedAt:Date.now()},{merge:true})}catch(e){stopEvent();throw e}}
   tab=organizer?5:1;scoringEvaluatorId=myId;ls('tc',c);ls('tn',n);groupSetups={};activeSetupSignature='';
@@ -515,7 +560,7 @@ async function start(c,n,requireOwner){
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'players'),function(s){if(attempt!==connectionId)return;players=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'scores'),function(s){if(attempt!==connectionId)return;scores=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},bad));
   unsubs.push(onSnapshot(collection(fs,'tryouts',code,'evaluators'),function(s){if(attempt!==connectionId)return;evaluators=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});if(tab===3)renderSetup()},bad));
-  render();
+  render();if(day)watchCheckIns(day);
 }
 
 var assignmentBusy=false;
