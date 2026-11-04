@@ -39,7 +39,7 @@ body{background:radial-gradient(ellipse at 0% 0%,#b3eee2 0,transparent 58%),radi
 @media(max-width:400px){.brand{padding:16px 14px;gap:9px}.brand h1{font-size:24px}.brand .tagline{font-size:10px;letter-spacing:.7px}}
 @media(prefers-color-scheme:dark){:root{--bg:#102d32;--bd:#2b474c;--ac:#66d9cb}body{background:radial-gradient(ellipse at 0% 0%,#164742 0,transparent 65%),radial-gradient(ellipse at 100% 45%,#153447 0,transparent 65%),#10292f}.tabs{background:#133138}.danger{color:#ffa5a5!important}}
 
-.board-actions{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin:0 auto 8px}.board-actions button{min-width:150px}
+.board-actions{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin:0 auto 8px}.board-actions button{min-width:150px}.tableSort{background:transparent;border:0;color:var(--mut);font-size:10px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;min-height:32px;padding:0}
 .checkin-yn{font-weight:800;color:var(--ac);text-align:center!important}.checkin-roster-row{cursor:pointer}.checkin-roster-row:hover{background:var(--bg)}
 dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;border:1px solid var(--bd);border-radius:18px;padding:22px;color:var(--tx);background:var(--card)}dialog::backdrop{background:#0c2139aa}dialog h2{font-size:20px;margin:0 0 12px}input[type=checkbox]{width:22px;min-height:22px;margin:0;accent-color:var(--ac)}[hidden]{display:none!important}.shareActions{display:flex;flex-wrap:wrap;gap:10px}.shareButton{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-weight:600;text-decoration:none} .tabs{flex-wrap:wrap}.tabs button{flex:1 1 150px} 
 /* Opening logo: trace the existing pathway from start to destination. */
@@ -80,7 +80,7 @@ dialog{width:calc(100% - 24px);max-width:560px;max-height:90dvh;overflow:auto;bo
 <main>
 <header class="brand"><div class="mark" aria-hidden="true"><svg viewBox="0 0 80 80" width="44" height="44" fill="none"><path d="M18 62C19 44 43 54 42 39C41 26 61 30 62 17" stroke="#24cbbb" stroke-width="6" stroke-linecap="round"/><circle cx="18" cy="62" r="5" fill="white"/><circle cx="42" cy="39" r="4" fill="white"/><circle cx="62" cy="17" r="6" stroke="#24cbbb" stroke-width="5" fill="#0c2139"/></svg></div><div><h1>Pathway <span>Evals</span></h1><div class="tagline">Evaluate. Develop. Advance.</div></div></header>
 <div class="sub" id="sub"></div><div class="row" id="accountBar" style="display:none;margin-bottom:12px"><button id="leaveEvent">Switch event</button><button id="t5">Admin Dashboard</button><button id="signOutBtn">Sign out</button></div>
-<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button></div>
+<div class="tabs" id="tabs" style="display:none"><button id="t1" class="on">Evaluation Scoring</button><button id="t2">Leaderboard</button><button id="t7">Attendance</button></div>
 <div class="progress" id="progress" hidden><span id="progressFill"></span></div><div id="v"></div><footer class="version">Pathway Evals · v6.0</footer>
 </main>
 <script type="module">
@@ -129,7 +129,7 @@ function eventRef(){return doc(fs,'tryouts',code)}
 async function deleteCollection(ref){while(true){var snap=await getDocs(ref);if(snap.empty)return;for(var i=0;i<snap.docs.length;i+=450){var batch=writeBatch(fs);snap.docs.slice(i,i+450).forEach(function(d){batch.delete(d.ref)});await batch.commit()}}}
 async function deleteEventCollection(c,name){return deleteCollection(collection(fs,'tryouts',c,name))}
 async function deleteCheckInData(c){await deleteEventCollection(c,'checkInUsers');var access=await getDoc(doc(fs,'tryouts',c,'checkInSettings','access'));if(access.exists()){var oldCode=access.data().code;if(oldCode)await deleteDoc(doc(fs,'checkInCodes',oldCode));await deleteDoc(access.ref)}var snap=await getDoc(doc(fs,'tryouts',c)),data=snap.exists()?snap.data():{},names=['Session 1','Day 1'];Object.keys(data.groupDays||{}).forEach(function(g){(data.groupDays[g]||[]).forEach(function(d){if(names.indexOf(d)<0)names.push(d)})});for(var i=0;i<names.length;i++)await deleteCollection(collection(fs,'tryouts',c,'checkIns',sessionKey(names[i]),'players'))}
-var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,comparePlayerIds=[],fs=null,code=null,myId=null,myName=null,unsubs=[];
+var players=[],scores=[],tab=1,sel=null,draft={},nd={},open=null,comparePlayerIds=[],attendanceSort='present',fs=null,code=null,myId=null,myName=null,unsubs=[];
 var grp=ls('tg')||null,day=null,bday='all',xg=[],xd={};
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -238,11 +238,11 @@ function render(){
   document.documentElement.style.setProperty('--score-count',SM);
   document.documentElement.style.setProperty('--score-columns',Math.min(SM,5));
   $('accountBar').style.display='flex';$('t5').hidden=!isOrganizer();$('tabs').style.display='flex';$('progress').hidden=tab!==1;
-  $('t5').className=tab==5?'on':'';$('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';
+  $('t5').className=tab==5?'on':'';$('t1').className=tab==1?'on':'';$('t2').className=tab==2?'on':'';$('t7').className=tab==7?'on':'';
   var activeBy=activeScoreEvaluator(),m=gp().filter(function(p){return mine(p.id,activeBy)}).length;$('progressFill').style.width=(gp().length?100*m/gp().length:0)+'%';
   var targetLabel=activeBy===myId?'you':scoreEvaluatorName(activeBy);
   $('sub').textContent=(isOwner()?'Organizer: ':isOrganizer()?'Co-organizer: ':'Evaluator: ')+myName+' · '+(eventName||code)+' · '+(grp||'No group selected')+' · '+gp().length+' players · '+gs().length+' evaluations'+(tab==1?' · '+targetLabel+' scored '+m+' of '+gp().length+' on '+day:'')+(eventLocked?' · LOCKED':'');
-  tab==5?renderAdminDashboard():tab==6?renderCheckInAccess():tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
+  tab==5?renderAdminDashboard():tab==6?renderCheckInAccess():tab==7?renderAttendance():tab==1?renderScore():tab==2?renderBoard():tab==4?renderRosterManagement():renderSetup();
   if(eventLocked)$('v').insertAdjacentHTML('afterbegin','<div class="card event-lock-notice" role="status"><b>🔒 Event locked</b><div class="mut">This completed event is read-only. Scores, players, and setup cannot be changed.</div></div>');
 }
 function checkInPresent(pid){return !!checkInRows.find(function(x){return x.id===pid&&x.present===true})}
@@ -250,7 +250,7 @@ function watchCheckIns(session){
   if(!code||!session||!myId)return;
   if(checkInUnsub){checkInUnsub();checkInUnsub=null}
   var event=code,key=sessionKey(session),attempt=connectionId;
-  checkInUnsub=onSnapshot(collection(fs,'tryouts',event,'checkIns',key,'players'),function(s){if(attempt!==connectionId)return;checkInRows=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});if(checkInOnly||tab===1||tab===2)render()},function(){if(attempt!==connectionId)return;checkInRows=[];if(checkInOnly||tab===1||tab===2)render()});
+  checkInUnsub=onSnapshot(collection(fs,'tryouts',event,'checkIns',key,'players'),function(s){if(attempt!==connectionId)return;checkInRows=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});if(checkInOnly||tab===1||tab===2||tab===7)render()},function(){if(attempt!==connectionId)return;checkInRows=[];if(checkInOnly||tab===1||tab===2||tab===7)render()});
 }
 function renderCheckIn(){
   $('accountBar').style.display='flex';$('t5').hidden=true;$('tabs').style.display='none';$('progress').hidden=true;
@@ -368,8 +368,7 @@ function renderScore(){
     if(!targetRows.some(function(e){return e.id===targetId})){targetId=myId;scoringEvaluatorId=myId;targetName=scoreEvaluatorName(myId)}
     h+='<div class="card"><label for="scoreEvaluator">Enter scores for evaluator</label><select id="scoreEvaluator" style="margin:0">'+targetRows.map(function(e){return '<option value="'+esc(e.id)+'"'+(e.id===targetId?' selected':'')+'>'+esc(e.name||'Unnamed evaluator')+(e.id===myId?' (you)':'')+'</option>'}).join('')+'</select><div class="mut" style="margin-top:6px">Scores are attributed to the selected evaluator. Your account is recorded as the person who entered them.</div></div>';
   }
-  var selectedPlayer=sp.find(function(p){return p.id===sel});
-  h+='<div class="card"><label for="ps">Player to evaluate</label><select id="ps" style="margin:0">'+sp.map(function(p){return '<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lab(p)+(mine(p.id,targetId)?' ✓':'')+'</option>'}).join('')+'</select><div class="tw" style="margin-top:12px"><table><thead><tr><th>Checked In</th><th>Player</th></tr></thead><tbody><tr><td class="checkin-yn">'+(checkInPresent(sel)?'Y':'N')+'</td><td>'+esc(playerText(selectedPlayer))+'</td></tr></tbody></table></div></div>';
+  h+='<div class="card"><label for="ps">Player to evaluate</label><select id="ps" style="margin:0">'+sp.map(function(p){return '<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+lab(p)+(mine(p.id,targetId)?' ✓':'')+'</option>'}).join('')+'</select></div>';
   var m=mine(sel,targetId),dk=sel+'|'+day+'|'+targetId;if(!draft[dk])draft[dk]=mv(m);
   var d=draft[dk];if(nd[dk]===undefined)nd[dk]=m&&m.note?m.note:'';
   h+='<div class="card">'+C.map(function(c){return '<div class="crit"><b>'+esc(c)+'</b><div class="sc">'+scale().map(function(n){return '<button data-c="'+esc(c)+'" data-n="'+n+'" class="'+(d[c]===n?'on':'')+'">'+n+'</button>'}).join('')+'</div></div>'}).join('')+
@@ -514,6 +513,13 @@ function renderBoard(){
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='pathway-evals-'+slug(grp)+(bday==='all'?'-all-sessions':'-'+slug(bday))+'.csv';a.click();
   };
 }
+function renderAttendance(){
+ var gl=groups();if(gl.indexOf(grp)<0)grp=gl[0]||null;var dl=grp?days():[];if(dl.indexOf(day)<0)day=dl[0]||null;
+ var rows=sortP().slice().sort(function(a,b){var diff=(checkInPresent(b.id)?1:0)-(checkInPresent(a.id)?1:0);if(attendanceSort==='absent')diff=-diff;return diff||nat(playerText(a),playerText(b))});
+ var checked=rows.filter(function(p){return checkInPresent(p.id)}).length;
+ $('v').innerHTML='<div class="card"><h2 class="intro">Attendance</h2><p class="mut">'+esc(grp||'No group selected')+' · '+esc(day||'No session selected')+' · '+checked+' present · '+(rows.length-checked)+' not checked in</p><div class="row"><div style="flex:1"><label for="attendanceGroup">Group</label><select id="attendanceGroup">'+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select></div><div style="flex:1"><label for="attendanceSession">Session</label><select id="attendanceSession">'+dl.map(function(d){return '<option value="'+esc(d)+'"'+(d===day?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select></div></div><div class="tw"><table><thead><tr><th><button id="attendanceSort" class="tableSort" aria-label="Sort attendance status">Checked In · '+(attendanceSort==='present'?'Y first':'N first')+' ↕</button></th><th>Player</th></tr></thead><tbody>'+rows.map(function(p){return '<tr><td class="checkin-yn">'+(checkInPresent(p.id)?'Y':'N')+'</td><td>'+esc(playerText(p))+'</td></tr>'}).join('')+'</tbody></table></div>'+(rows.length?'':'<p class="mut">No players are assigned to this group yet.</p>')+'</div>';
+ $('attendanceGroup').onchange=function(){grp=this.value;day=days()[0]||null;watchCheckIns(day);render()};$('attendanceSession').onchange=function(){day=this.value;watchCheckIns(day);render()};$('attendanceSort').onclick=function(){attendanceSort=attendanceSort==='present'?'absent':'present';renderAttendance()};
+}
 function evaluatorRows(){
  var rows=new Map(evaluators.map(function(e){return [e.id,Object.assign({},e)]}));
  scores.forEach(function(s){if(!rows.has(s.by))rows.set(s.by,{id:s.by,name:s.who||'Unnamed evaluator'})});
@@ -624,7 +630,7 @@ function renderRosterManagement(){
 }
 
 $('t5').onclick=function(){if(isOrganizer()){tab=5;render()}};
-$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};
+$('t1').onclick=function(){tab=1;render()};$('t2').onclick=function(){tab=2;render()};$('t7').onclick=function(){tab=7;render()};
 $('leaveEvent').onclick=function(){stopEvent();renderLogin()};
 $('signOutBtn').onclick=async function(){stopEvent();await signOut(auth);renderLogin()};
 
